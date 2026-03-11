@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # E-Recruitment Portal
 
 A comprehensive recruitment management system built with Flask for managing job postings, applications, interviews, and offers.
@@ -5,49 +6,19 @@ A comprehensive recruitment management system built with Flask for managing job 
 ## Features
 
 ### Applicant Portal
-- User registration and profile management
-- Browse and search job postings
-- Online job application with document uploads
-- Application status tracking
-- Interview schedule viewing
-- Offer acceptance/rejection
 
 ### HR Dashboard
-- Create and manage job postings
-- Automatic application screening
-- Shortlisting and rejection workflows
-- Interview scheduling
-- Offer creation and management
-- Recruitment reports and analytics
 
 ### Admin Functions
-- User management (CRUD operations)
-- Role-based access control (Admin, HR, Manager, Applicant)
-- Comprehensive audit logging
-- System configuration
 
 ### Integrations
-- SharePoint document storage
-- Email notifications (SMTP)
-- SMS notifications (optional, via Twilio)
-- Background task processing (Celery + Redis)
 
 ## Tech Stack
 
-- **Backend**: Flask (Python 3.10+)
-- **Database**: MySQL with SQLAlchemy ORM
-- **Task Queue**: Celery with Redis
-- **Frontend**: Bootstrap 5, Jinja2 templates
-- **Authentication**: Flask-Login
-- **Forms**: Flask-WTF with WTForms
 
 ## Installation
 
 ### Prerequisites
-- Python 3.10 or higher
-- MySQL 8.0 or higher
-- Redis (for Celery)
-- Git
 
 ### Setup Steps
 
@@ -157,12 +128,6 @@ pytest tests/
 ## Deployment
 
 ### Production Checklist
-- [ ] Set `FLASK_ENV=production`
-- [ ] Use strong `SECRET_KEY`
-- [ ] Configure HTTPS
-- [ ] Set up database backups
-- [ ] Configure logging
-- [ ] Use Gunicorn/uWSGI
 
 ### Running with Gunicorn
 ```bash
@@ -176,3 +141,6 @@ Proprietary - [Your Organization]
 ## Support
 
 For support, contact: hr@municipality.gov.za
+=======
+# E_Recruitment_App
+>>>>>>> 0ea6ee40accbf9bbfb676084432b74073a2d1378
