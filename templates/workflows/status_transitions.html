@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Status Transition History - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-left-right"></i> Status Transition History</h2>
+        <a href="{{ url_for('hr.workflows') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-diagram-3"></i> Workflow Rules
+        </a>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Application ID</label>
+                    <input type="number" name="application_id" class="form-control"
+                           value="{{ filter_application_id or '' }}"
+                           placeholder="Enter application ID">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                    {% if filter_application_id %}
+                    <a href="{{ url_for('hr.status_transitions') }}" class="btn btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if transitions.items %}
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Application</th>
+                        <th>Applicant</th>
+                        <th>Transition</th>
+                        <th>Type</th>
+                        <th>Changed By</th>
+                        <th>Notes</th>
+                        <th>Date/Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in transitions.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('hr.view_application', application_id=log.application_id) }}">
+                                #{{ log.application_id }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if log.application and log.application.applicant %}
+                            {{ log.application.applicant.first_name }} {{ log.application.applicant.last_name }}
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.from_status %}
+                            <span class="badge bg-secondary">{{ log.from_status.replace('_', ' ').title() }}</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">New</span>
+                            {% endif %}
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            <span class="badge 
+                                {% if log.to_status == 'hired' %}bg-success
+                                {% elif log.to_status == 'rejected' %}bg-danger
+                                {% elif log.to_status == 'offered' %}bg-info
+                                {% elif log.to_status in ['shortlisted', 'interviewed'] %}bg-primary
+                                {% else %}bg-warning text-dark{% endif %}">
+                                {{ log.to_status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if log.change_type == 'automated' %}
+                            <span class="badge bg-info">Automated</span>
+                            {% elif log.change_type == 'system' %}
+                            <span class="badge bg-dark">System</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Manual</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.changed_by_user %}
+                            {{ log.changed_by_user.first_name }} {{ log.changed_by_user.last_name }}
+                            {% elif log.workflow_rule %}
+                            <small class="text-muted">Rule: {{ log.workflow_rule.name }}</small>
+                            {% else %}
+                            <span class="text-muted">System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.notes %}
+                            <small>{{ log.notes[:50] }}{% if log.notes|length > 50 %}...{% endif %}</small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ log.transitioned_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if transitions.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if transitions.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.status_transitions', page=transitions.prev_num, application_id=filter_application_id) }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in transitions.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == transitions.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('hr.status_transitions', page=page_num, application_id=filter_application_id) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if transitions.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.status_transitions', page=transitions.next_num, application_id=filter_application_id) }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No status transitions recorded yet.
+        {% if filter_application_id %}
+        <a href="{{ url_for('hr.status_transitions') }}">Clear filter</a> to see all transitions.
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

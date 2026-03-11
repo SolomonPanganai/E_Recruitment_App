@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Create Offer - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.application_detail', application_id=application.id) }}">{{ application.application_reference }}</a></li>
+                <li class="breadcrumb-item active">Create Offer</li>
+            </ol>
+        </nav>
+
+        <!-- Applicant Summary -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            {{ application.applicant.first_name[0] }}{{ application.applicant.last_name[0] }}
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-1">{{ application.applicant.full_name }}</h5>
+                        <p class="mb-0 text-muted">{{ application.job.title }} - {{ application.job.department }}</p>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-success fs-6">Ready for Offer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offer Form -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-envelope-paper"></i> Create Job Offer</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.salary_offered.label(class="form-label") }}
+                            {{ form.salary_offered(class="form-control", placeholder="e.g. R450,000 per annum") }}
+                            {% for error in form.salary_offered.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                            {% if application.job.salary_range %}
+                            <small class="text-muted">Job range: {{ application.job.salary_range }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.start_date.label(class="form-label") }}
+                            {{ form.start_date(class="form-control", type="date") }}
+                            {% for error in form.start_date.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.expiry_date.label(class="form-label") }}
+                            {{ form.expiry_date(class="form-control", type="date") }}
+                            <small class="text-muted">Deadline for applicant to respond</small>
+                            {% for error in form.expiry_date.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Position</label>
+                            <input type="text" class="form-control" value="{{ application.job.title }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.benefits.label(class="form-label") }}
+                        {{ form.benefits(class="form-control", rows="3", placeholder="List benefits included in this offer:\n- Medical aid contribution\n- Pension fund\n- 20 days annual leave") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.conditions.label(class="form-label") }}
+                        {{ form.conditions(class="form-control", rows="3", placeholder="Any conditions of employment:\n- Subject to reference checks\n- Subject to qualification verification\n- 3-month probation period") }}
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="sendOffer" name="send_offer" checked>
+                        <label class="form-check-label" for="sendOffer">
+                            Send offer letter to applicant via email
+                        </label>
+                    </div>
+
+                    <hr>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Note:</strong> Once sent, the applicant will be able to accept or decline this offer through the portal.
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('hr.application_detail', application_id=application.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-success") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

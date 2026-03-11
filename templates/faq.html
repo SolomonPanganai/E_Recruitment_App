@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="mb-4"><i class="bi bi-question-circle"></i> Frequently Asked Questions</h2>
+
+        <div class="accordion" id="faqAccordion">
+            <!-- Registration & Account -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        How do I create an account?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Click the "Register" button in the top navigation bar. Fill in your personal details including your name, email, and create a password. Once registered, you can log in and start applying for positions.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        Can I apply for multiple positions?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Yes, you can apply for as many positions as you qualify for. However, you can only submit one application per position. Make sure to tailor your cover letter for each application.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        What documents do I need to apply?
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        <strong>Required:</strong>
+                        <ul>
+                            <li>Updated CV/Resume (PDF, DOC, or DOCX format)</li>
+                        </ul>
+                        <strong>Recommended:</strong>
+                        <ul>
+                            <li>Certified copy of ID document</li>
+                            <li>Certified copies of qualifications</li>
+                            <li>Cover letter explaining your suitability</li>
+                        </ul>
+                        Maximum file size is 16MB per document.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                        How do I track my application status?
+                    </button>
+                </h2>
+                <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Log in to your account and go to "My Dashboard". You'll see all your applications with their current status. Possible statuses include:
+                        <ul>
+                            <li><strong>Submitted:</strong> Application received</li>
+                            <li><strong>Under Review:</strong> Being evaluated by HR</li>
+                            <li><strong>Shortlisted:</strong> Selected for further consideration</li>
+                            <li><strong>Interviewed:</strong> Interview completed</li>
+                            <li><strong>Offered:</strong> Job offer extended</li>
+                            <li><strong>Unsuccessful:</strong> Not selected</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                        Can I withdraw my application?
+                    </button>
+                </h2>
+                <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Yes, you can withdraw your application at any time before receiving a final decision. Go to your application details page and click "Withdraw Application". Note that this action cannot be undone.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                        What is Employment Equity (EE)?
+                    </button>
+                </h2>
+                <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Employment Equity positions are designated to promote equal opportunity and fair treatment in employment. Some positions may indicate an EE preference. All applicants are encouraged to apply, and the EE designation helps us meet our transformation goals.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                        How will I be notified about my application?
+                    </button>
+                </h2>
+                <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        You will receive email notifications at each stage of the process. Please ensure your email address is correct and check your spam folder regularly. You can also log in to check your application status at any time.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8">
+                        I forgot my password. What should I do?
+                    </button>
+                </h2>
+                <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Contact the HR department via the contact page or email hr@municipality.gov.za with your registered email address. We will assist you in resetting your password after verifying your identity.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <p>Still have questions?</p>
+            <a href="{{ url_for('main.contact') }}" class="btn btn-primary">
+                <i class="bi bi-envelope"></i> Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 print-analytics">
+    <div>
+        <h2><i class="bi bi-graph-up"></i> Recruitment Analytics</h2>
+        <p class="text-muted mb-0">Comprehensive recruitment metrics and insights</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('hr.recruitment_funnel') }}" class="btn btn-outline-primary">
+            <i class="bi bi-funnel"></i> Funnel
+        </a>
+        <a href="{{ url_for('hr.time_to_hire_report') }}" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history"></i> Time to Hire
+        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('hr.export_report', report_type='applications') }}">Applications CSV</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('hr.export_report', report_type='jobs') }}">Jobs CSV</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('hr.export_report', report_type='ee') }}">EE Report CSV</a></li>
+            </ul>
+        </div>
+        <button onclick="window.print()" class="btn btn-outline-secondary ms-2" title="Print analytics report">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+    <style>
+    @media print {
+        body * { visibility: hidden; }
+        .print-analytics, .print-analytics * { visibility: visible !important; }
+        .card, .card * { visibility: visible; }
+        .card { position: relative; left: 0; top: 0; width: 100vw; box-shadow: none; border: none; }
+        .btn, .navbar, .breadcrumb, .form-select, .ms-2, .gap-2, .d-flex, .card-header .btn { display: none !important; }
+        .card-header { border-bottom: 1px solid #eee; }
+        h2, h5, h6 { color: #222 !important; }
+        .badge { color: #fff !important; }
+    }
+    </style>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in form.department.choices[1:] %}
+                    <option value="{{ dept[0] }}" {% if department_filter == dept[0] %}selected{% endif %}>{{ dept[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">Apply Filter</button>
+                <a href="{{ url_for('hr.reports') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Overview Stats -->
+<div class="row mb-4">
+    <div class="col-md-2 mb-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.total_jobs or 0 }}</h2>
+                <small>Total Jobs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.active_jobs or 0 }}</h2>
+                <small>Active Jobs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.total_applications or 0 }}</h2>
+                <small>Applications</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.hired or 0 }}</h2>
+                <small>Offers Made</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.conversion_rate }}%</h2>
+                <small>Conversion Rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card bg-dark text-white h-100">
+            <div class="card-body text-center py-3">
+                <h2 class="mb-0">{{ stats.avg_applications_per_job }}</h2>
+                <small>Avg/Job</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Trend -->
+{% if monthly_trend %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Application Trend (Last 6 Months)</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-end" style="height: 200px;">
+            {% set max_count = monthly_trend|map(attribute='count')|max or 1 %}
+            {% for month in monthly_trend %}
+            <div class="col text-center">
+                <div class="d-flex flex-column justify-content-end h-100">
+                    <div class="bg-primary rounded-top mx-1" style="height: {{ (month.count / max_count * 150)|int }}px; min-height: 5px;">
+                    </div>
+                    <div class="fw-bold mt-1">{{ month.count }}</div>
+                    <small class="text-muted">{{ month.month }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Applications by Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Applications by Status</h5>
+            </div>
+            <div class="card-body">
+                {% if status_breakdown %}
+                <table class="table table-sm">
+                    <tbody>
+                        {% for status, count in status_breakdown.items() %}
+                        {% set status_pct = (count / stats.total_applications * 100)|round if stats.total_applications else 0 %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-{% if status == 'submitted' %}secondary{% elif status == 'shortlisted' %}success{% elif status == 'rejected' %}danger{% elif status == 'hired' %}primary{% else %}info{% endif %} me-2">
+                                    {{ status|replace('_', ' ')|title }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ count }}</td>
+                            <td style="width: 50%;">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" data-width="{{ status_pct }}"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center mb-0">No data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications by Department -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Applications by Department</h5>
+            </div>
+            <div class="card-body">
+                {% if department_breakdown %}
+                <table class="table table-sm">
+                    <tbody>
+                        {% for dept, count in department_breakdown.items() %}
+                        {% set dept_pct = (count / stats.total_applications * 100)|round if stats.total_applications else 0 %}
+                        <tr>
+                            <td>{{ dept }}</td>
+                            <td class="text-end">{{ count }}</td>
+                            <td style="width: 50%;">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" data-width="{{ dept_pct }}"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center mb-0">No data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EE Reporting -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Employment Equity Report</h5>
+            </div>
+            <div class="card-body">
+                {% if ee_stats %}
+                <h6>By Gender</h6>
+                <table class="table table-sm mb-3">
+                    <tbody>
+                        {% for gender, count in ee_stats.gender.items() %}
+                        <tr>
+                            <td>{{ gender or 'Not Specified' }}</td>
+                            <td class="text-end">{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <h6>By Race</h6>
+                <table class="table table-sm mb-3">
+                    <tbody>
+                        {% for race, count in ee_stats.race.items() %}
+                        <tr>
+                            <td>{{ race or 'Not Specified' }}</td>
+                            <td class="text-end">{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <h6>Disability Status</h6>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>With Disability</td>
+                            <td class="text-end">{{ ee_stats.disability.yes or 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Without Disability</td>
+                            <td class="text-end">{{ ee_stats.disability.no or 0 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center mb-0">No EE data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Jobs -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-star"></i> Most Applied Positions</h5>
+            </div>
+            <div class="card-body">
+                {% if top_jobs %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th class="text-end">Applications</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in top_jobs %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('hr.job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                            </td>
+                            <td class="text-end">{{ job.application_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center mb-0">No data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-width]').forEach(function(el) {
+        el.style.width = el.dataset.width + '%';
+    });
+});
+</script>
+{% endblock %}

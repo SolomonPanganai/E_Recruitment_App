@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Applications - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-text"></i> Applications</h2>
+        <p class="text-muted mb-0">{{ pagination.total }} applications found</p>
+    </div>
+    <a href="{{ url_for('hr.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Advanced Search & Filters -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-funnel me-1"></i>Search & Filter</h6>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+            <i class="bi bi-sliders"></i> Advanced
+        </button>
+    </div>
+    <div class="card-body">
+        <form method="GET">
+            <!-- Primary Search Bar -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search by name, email, reference, or job title..." 
+                               value="{{ search }}">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                        <a href="{{ url_for('hr.applications') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Filters -->
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>New (Submitted)</option>
+                        <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>Under Review</option>
+                        <option value="shortlisted" {% if status_filter == 'shortlisted' %}selected{% endif %}>Shortlisted</option>
+                        <option value="interviewed" {% if status_filter == 'interviewed' %}selected{% endif %}>Interviewed</option>
+                        <option value="offered" {% if status_filter == 'offered' %}selected{% endif %}>Offered</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Job Position</label>
+                    <select name="job_id" class="form-select">
+                        <option value="">All Jobs</option>
+                        {% for job in jobs %}
+                        <option value="{{ job.id }}" {% if job_filter == job.id %}selected{% endif %}>{{ job.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Department</label>
+                    <select name="department" class="form-select">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sort By</label>
+                    <select name="sort" class="form-select">
+                        <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
+                        <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
+                        <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="name_desc" {% if sort_by == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                        <option value="score_desc" {% if sort_by == 'score_desc' %}selected{% endif %}>Highest Score</option>
+                        <option value="score_asc" {% if sort_by == 'score_asc' %}selected{% endif %}>Lowest Score</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Advanced Filters (Collapsible) -->
+            <div class="collapse mt-3" id="advancedFilters">
+                <div class="card card-body bg-light">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Min Score (%)</label>
+                            <input type="number" name="min_screening" class="form-control" min="0" max="100" 
+                                   value="{{ min_screening or '' }}" placeholder="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max Score (%)</label>
+                            <input type="number" name="max_screening" class="form-control" min="0" max="100" 
+                                   value="{{ max_screening or '' }}" placeholder="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Applications Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Reference</th>
+                    <th>Applicant</th>
+                    <th>Position / Department</th>
+                    <th>Applied</th>
+                    <th>Score</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr>
+                    <td><code>{{ app.application_reference }}</code></td>
+                    <td>
+                        <strong>{{ app.applicant.full_name }}</strong><br>
+                        <small class="text-muted">{{ app.applicant.email }}</small>
+                    </td>
+                    <td>
+                        {{ app.job.title }}<br>
+                        <small class="text-muted">{{ app.job.department }}</small>
+                    </td>
+                    <td>{{ app.application_date.strftime('%d %b %Y') }}</td>
+                    <td>
+                        {% if app.screening_score is not none %}
+                        <span class="badge {% if app.screening_score >= 70 %}bg-success{% elif app.screening_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ app.screening_score }}%
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if app.status == 'submitted' %}
+                        <span class="badge bg-secondary">New</span>
+                        {% elif app.status == 'under_review' %}
+                        <span class="badge bg-info">Reviewing</span>
+                        {% elif app.status == 'shortlisted' %}
+                        <span class="badge bg-success">Shortlisted</span>
+                        {% elif app.status == 'interviewed' %}
+                        <span class="badge bg-primary">Interviewed</span>
+                        {% elif app.status == 'offered' %}
+                        <span class="badge bg-warning text-dark">Offered</span>
+                        {% elif app.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                        {% elif app.status == 'hired' %}
+                        <span class="badge bg-success">Hired</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('hr.application_detail', application_id=app.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Review
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        No applications found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.applications', page=pagination.prev_num, search=search, status=status_filter, job_id=job_filter or '', department=department_filter, date_from=date_from, date_to=date_to, sort=sort_by, min_screening=min_screening or '', max_screening=max_screening or '') }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+        {% if page %}
+        <li class="page-item {% if page == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('hr.applications', page=page, search=search, status=status_filter, job_id=job_filter or '', department=department_filter, date_from=date_from, date_to=date_to, sort=sort_by, min_screening=min_screening or '', max_screening=max_screening or '') }}">{{ page }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.applications', page=pagination.next_num, search=search, status=status_filter, job_id=job_filter or '', department=department_filter, date_from=date_from, date_to=date_to, sort=sort_by, min_screening=min_screening or '', max_screening=max_screening or '') }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

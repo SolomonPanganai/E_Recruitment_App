@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Committees - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="mb-0">Recruitment Committees</h1>
+            <p class="text-muted">Manage shortlisting and interviewing committees</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCommitteeModal">
+                <i class="fas fa-plus"></i> New Committee
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs for different committee types -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="shortlisting-tab" data-bs-toggle="tab" 
+                    data-bs-target="#shortlisting" type="button" role="tab">
+                <i class="fas fa-filter"></i> Shortlisting Committees
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="interviewing-tab" data-bs-toggle="tab"
+                    data-bs-target="#interviewing" type="button" role="tab">
+                <i class="fas fa-users"></i> Interviewing Committees
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Shortlisting Committees -->
+        <div class="tab-pane fade show active" id="shortlisting" role="tabpanel">
+            <div class="row" id="shortlistingCommittees">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Interviewing Committees -->
+        <div class="tab-pane fade" id="interviewing" role="tabpanel">
+            <div class="row" id="interviewingCommittees">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Committee Modal -->
+<div class="modal fade" id="createCommitteeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Committee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createCommitteeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="committeeName" class="form-label">Committee Name*</label>
+                        <input type="text" class="form-control" id="committeeName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="committeeType" class="form-label">Type*</label>
+                        <select class="form-select" id="committeeType" required>
+                            <option value="">Select type...</option>
+                            <option value="shortlisting">Shortlisting</option>
+                            <option value="interviewing">Interviewing</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jobId" class="form-label">Job Posting (Optional)</label>
+                        <select class="form-select" id="jobId">
+                            <option value="">Organization-wide</option>
+                            <!-- Jobs loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="committeeDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="committeeDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requiresUnanimous">
+                            <label class="form-check-label" for="requiresUnanimous">
+                                Requires Unanimous Decision
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="minVotes" class="form-label">Minimum Votes Required</label>
+                        <input type="number" class="form-control" id="minVotes" min="1" value="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Committee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Committee Details Modal -->
+<div class="modal fade" id="committeeDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="committeeDetailsTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="committeeDetailsContent">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCommittees('shortlisting');
+    loadCommittees('interviewing');
+    loadJobsForDropdown();
+});
+
+function loadCommittees(type) {
+    fetch(`/api/committees?type=${type}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById(
+                type === 'shortlisting' ? 'shortlistingCommittees' : 'interviewingCommittees'
+            );
+            
+            if (data.committees.length === 0) {
+                container.innerHTML = '<div class="alert alert-info w-100">No committees found</div>';
+                return;
+            }
+            
+            container.innerHTML = data.committees.map(committee => `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${committee.name}</h5>
+                            <p class="card-text text-muted small">
+                                <i class="fas fa-users"></i> ${committee.member_count} members
+                            </p>
+                            <div class="mb-3">
+                                <span class="badge bg-info">${committee.type}</span>
+                                ${committee.requires_unanimous ? '<span class="badge bg-warning">Unanimous Required</span>' : ''}
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="viewCommitteeDetails(${committee.id})">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => console.error('Error loading committees:', error));
+}
+
+function loadJobsForDropdown() {
+    fetch('/api/jobs')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('jobId');
+            data.jobs.forEach(job => {
+                const option = document.createElement('option');
+                option.value = job.id;
+                option.textContent = job.title;
+                select.appendChild(option);
+            });
+        });
+}
+
+function viewCommitteeDetails(committeeId) {
+    fetch(`/api/committees/${committeeId}`)
+        .then(response => response.json())
+        .then(committee => {
+            document.getElementById('committeeDetailsTitle').textContent = committee.name;
+            
+            const membersHtml = committee.members.map(member => `
+                <tr>
+                    <td>${member.user_name}</td>
+                    <td>
+                        <span class="badge ${member.role === 'chair' ? 'bg-danger' : 'bg-secondary'}">
+                            ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        </span>
+                    </td>
+                    <td>${new Date(member.joined_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('committeeDetailsContent').innerHTML = `
+                <div class="mb-4">
+                    <h6>Committee Information</h6>
+                    <p>${committee.description || 'No description'}</p>
+                    <dl class="row">
+                        <dt class="col-sm-4">Type:</dt>
+                        <dd class="col-sm-8">${committee.type}</dd>
+                        <dt class="col-sm-4">Decision Rule:</dt>
+                        <dd class="col-sm-8">
+                            ${committee.requires_unanimous ? 'Unanimous' : 'Majority'} 
+                            (Min votes: ${committee.min_votes_required})
+                        </dd>
+                    </dl>
+                </div>
+                <div>
+                    <h6>Committee Members</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${membersHtml}
+                        </tbody>
+                    </table>
+                    <button class="btn btn-sm btn-primary" onclick="showAddMemberForm(${committee.id})">
+                        <i class="fas fa-plus"></i> Add Member
+                    </button>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('committeeDetailsModal')).show();
+        })
+        .catch(error => console.error('Error loading committee details:', error));
+}
+
+function showAddMemberForm(committeeId) {
+    // TODO: Implement add member form
+    alert('Add member functionality - to be implemented');
+}
+
+document.getElementById('createCommitteeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const data = {
+        name: document.getElementById('committeeName').value,
+        type: document.getElementById('committeeType').value,
+        job_id: document.getElementById('jobId').value || null,
+        description: document.getElementById('committeeDescription').value,
+        requires_unanimous: document.getElementById('requiresUnanimous').checked,
+        min_votes_required: parseInt(document.getElementById('minVotes').value)
+    };
+    
+    fetch('/api/committees', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to create committee');
+        return response.json();
+    })
+    .then(result => {
+        alert('Committee created successfully!');
+        bootstrap.Modal.getInstance(document.getElementById('createCommitteeModal')).hide();
+        this.reset();
+        loadCommittees('shortlisting');
+        loadCommittees('interviewing');
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        console.error('Error:', error);
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

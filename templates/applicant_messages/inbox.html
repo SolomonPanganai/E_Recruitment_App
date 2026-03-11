@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}My Messages - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-envelope me-2"></i>My Messages</h2>
+            <p class="text-muted mb-0">Communication with HR</p>
+        </div>
+    </div>
+
+    <!-- View Tabs -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if view == 'inbox' else '' }}" href="{{ url_for('applicant.applicant_messages', view='inbox') }}">
+                <i class="bi bi-inbox me-1"></i>Inbox
+                {% if unread_count > 0 %}<span class="badge bg-danger">{{ unread_count }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if view == 'sent' else '' }}" href="{{ url_for('applicant.applicant_messages', view='sent') }}">
+                <i class="bi bi-send me-1"></i>Sent
+            </a>
+        </li>
+    </ul>
+
+    <!-- Messages List -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if messages.items %}
+            <div class="list-group list-group-flush">
+                {% for message in messages.items %}
+                <a href="{{ url_for('applicant.view_applicant_message', message_id=message.id) }}" 
+                   class="list-group-item list-group-item-action {% if not message.is_read and view == 'inbox' %}bg-light{% endif %}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <div class="d-flex align-items-center">
+                            {% if not message.is_read and view == 'inbox' %}
+                            <span class="badge bg-primary me-2">New</span>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-1 {% if not message.is_read and view == 'inbox' %}fw-bold{% endif %}">
+                                    {{ message.subject }}
+                                </h6>
+                                <small class="text-muted">
+                                    {% if view == 'sent' %}
+                                    To: {{ message.recipient.full_name }}
+                                    {% else %}
+                                    From: {{ message.sender.full_name }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ message.created_at.strftime('%d %b %Y, %H:%M') }}</small>
+                    </div>
+                    <p class="mb-1 text-truncate text-muted small">{{ message.body[:100] }}...</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="mt-3 text-muted">No messages in {{ view }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if messages.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if messages.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('applicant.applicant_messages', view=view, page=messages.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for p in messages.iter_pages() %}
+                {% if p %}
+                <li class="page-item {{ 'active' if p == messages.page else '' }}">
+                    <a class="page-link" href="{{ url_for('applicant.applicant_messages', view=view, page=p) }}">{{ p }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if messages.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('applicant.applicant_messages', view=view, page=messages.next_num) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

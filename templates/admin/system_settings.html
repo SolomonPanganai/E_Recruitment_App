@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>System Settings</h2>
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label for="system_name" class="form-label">System Name</label>
+            {{ form.system_name(class="form-control", id="system_name") }}
+        </div>
+        <!-- Theme selection is now handled by the modal in base.html -->
+        <div class="mb-3">
+            <label for="logo" class="form-label">Logo</label>
+            {{ form.logo(class="form-control", id="logo") }}
+            {% if settings and settings.logo %}
+                <div class="mt-2">
+                    <img src="{{ url_for('static', filename='images/' ~ settings.logo) }}" alt="Current Logo" style="height:60px;" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default_logo.png') }}';">
+                    <div class="small text-muted">Current logo</div>
+                </div>
+            {% else %}
+                <div class="mt-2">
+                    <img src="{{ url_for('static', filename='images/default_logo.png') }}" alt="Default Logo" style="height:60px;">
+                    <div class="small text-muted">Default logo</div>
+                </div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeSelect = document.getElementById('theme');
+        themeSelect?.addEventListener('change', function() {
+            const selectedTheme = themeSelect.value;
+            document.body.className = document.body.className.replace(/theme-[a-z]+/g, '').trim();
+            document.body.classList.add('theme-' + selectedTheme);
+        });
+    });
+    </script>
+    {% if settings %}
+    <div class="mt-4">
+        <strong>Current Settings:</strong>
+        <ul>
+            <li>System Name: {{ settings.system_name }}</li>
+            <li>Theme: {{ settings.theme }}</li>
+            <li>Last Updated: {{ settings.updated_at }}</li>
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Message Templates - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.messages_inbox') }}">Messages</a></li>
+                    <li class="breadcrumb-item active">Templates</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-file-text me-2"></i>Message Templates</h2>
+            <p class="text-muted mb-0">Create reusable message templates</p>
+        </div>
+        <a href="{{ url_for('hr.create_template') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>New Template
+        </a>
+    </div>
+
+    {% if templates %}
+    <div class="row">
+        {% for template in templates %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-{{ 'success' if template.template_type == 'interview_invite' else 'info' if template.template_type == 'offer' else 'danger' if template.template_type == 'rejection' else 'secondary' }}">
+                        {{ template.template_type|replace('_', ' ')|title }}
+                    </span>
+                    <span class="badge {% if template.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ 'Active' if template.is_active else 'Inactive' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ template.name }}</h5>
+                    <p class="text-muted small mb-2"><strong>Subject:</strong> {{ template.subject }}</p>
+                    <p class="card-text small text-truncate">{{ template.body[:100] }}...</p>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <a href="{{ url_for('hr.edit_template', template_id=template.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{{ url_for('hr.compose_message') }}?template={{ template.id }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-send"></i> Use
+                    </a>
+                    <form action="{{ url_for('hr.delete_template', template_id=template.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                onclick="return confirm('Delete this template?')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-text display-1 text-muted"></i>
+            <h5 class="mt-3">No Templates Yet</h5>
+            <p class="text-muted">Create templates for common messages like interview invitations, rejections, etc.</p>
+            <a href="{{ url_for('hr.create_template') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Create First Template
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

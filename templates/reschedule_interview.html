@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Reschedule Interview - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-1">
+                            <li class="breadcrumb-item"><a href="{{ url_for('hr.interviews_list') }}">Interviews</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('hr.interview_detail', interview_id=interview.id) }}">Details</a></li>
+                            <li class="breadcrumb-item active">Reschedule</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 mb-0"><i class="bi bi-calendar-plus me-2"></i>Reschedule Interview</h1>
+                    <p class="text-muted mb-0">{{ interview.application.applicant.full_name }}</p>
+                </div>
+                <a href="{{ url_for('hr.interview_detail', interview_id=interview.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Current Schedule Info -->
+            <div class="alert alert-info mb-4">
+                <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Current Schedule</h6>
+                <p class="mb-0">
+                    <strong>{{ interview.scheduled_date.strftime('%A, %d %B %Y') }}</strong> at 
+                    <strong>{{ interview.start_time.strftime('%H:%M') }} - {{ interview.end_time.strftime('%H:%M') }}</strong>
+                    <br>
+                    <small>{{ interview.interview_type.replace('_', ' ').title() }} - {{ interview.location }}</small>
+                </p>
+            </div>
+
+            <form method="POST" class="card">
+                {{ form.hidden_tag() }}
+                <div class="card-header">
+                    <h5 class="mb-0">New Schedule</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Date <span class="text-danger">*</span></label>
+                            {{ form.scheduled_date(class="form-control") }}
+                            {% for error in form.scheduled_date.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Start Time <span class="text-danger">*</span></label>
+                            {{ form.start_time(class="form-control") }}
+                            {% for error in form.start_time.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">End Time <span class="text-danger">*</span></label>
+                            {{ form.end_time(class="form-control") }}
+                            {% for error in form.end_time.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Interview Type <span class="text-danger">*</span></label>
+                            {{ form.interview_type(class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Location / Meeting Link <span class="text-danger">*</span></label>
+                            {{ form.location(class="form-control", placeholder="Office address or video meeting link") }}
+                            {% for error in form.location.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Interview Panel</label>
+                        {{ form.panel_members(class="form-select", multiple="multiple", size="5") }}
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple panel members</div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('hr.interview_detail', interview_id=interview.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-calendar-check me-1"></i>Reschedule & Notify
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

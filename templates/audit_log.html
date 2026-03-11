@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-journal-text"></i> Audit Log</h2>
+    <div>
+        <a href="{{ url_for('hr.live_activity') }}" class="btn btn-warning me-2">
+            <i class="bi bi-activity"></i> Live Activity
+        </a>
+        <a href="{{ url_for('hr.manage_users') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Action Type</label>
+                <select name="action_type" class="form-select">
+                    <option value="">All Actions</option>
+                    <option value="CREATE" {% if request.args.get('action_type') == 'CREATE' %}selected{% endif %}>Create</option>
+                    <option value="UPDATE" {% if request.args.get('action_type') == 'UPDATE' %}selected{% endif %}>Update</option>
+                    <option value="DELETE" {% if request.args.get('action_type') == 'DELETE' %}selected{% endif %}>Delete</option>
+                    <option value="LOGIN" {% if request.args.get('action_type') == 'LOGIN' %}selected{% endif %}>Login</option>
+                    <option value="LOGOUT" {% if request.args.get('action_type') == 'LOGOUT' %}selected{% endif %}>Logout</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Entity Type</label>
+                <select name="entity_type" class="form-select">
+                    <option value="">All Entities</option>
+                    <option value="User" {% if request.args.get('entity_type') == 'User' %}selected{% endif %}>User</option>
+                    <option value="JobPosting" {% if request.args.get('entity_type') == 'JobPosting' %}selected{% endif %}>Job Posting</option>
+                    <option value="Application" {% if request.args.get('entity_type') == 'Application' %}selected{% endif %}>Application</option>
+                    <option value="Interview" {% if request.args.get('entity_type') == 'Interview' %}selected{% endif %}>Interview</option>
+                    <option value="Offer" {% if request.args.get('entity_type') == 'Offer' %}selected{% endif %}>Offer</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">User</label>
+                <input type="text" name="user" class="form-control" placeholder="Username..." value="{{ request.args.get('user', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Details</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>
+                        <small>{{ log.timestamp.strftime('%d %b %Y %H:%M:%S') }}</small>
+                    </td>
+                    <td>
+                        {% if log.user %}
+                        {{ log.user.full_name }}
+                        {% else %}
+                        <span class="text-muted">System</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if log.action_type == 'CREATE' %}success{% elif log.action_type == 'UPDATE' %}info{% elif log.action_type == 'DELETE' %}danger{% elif log.action_type == 'LOGIN' %}primary{% else %}secondary{% endif %}">
+                            {{ log.action_type }}
+                        </span>
+                    </td>
+                    <td>
+                        <strong>{{ log.entity_type }}</strong>
+                        {% if log.entity_id %}
+                        <small class="text-muted">#{{ log.entity_id }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ log.description|truncate(50) }}</small>
+                        {% if log.description|length > 50 %}
+                        <button class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#detailModal{{ log.id }}">
+                            more
+                        </button>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ log.ip_address or '-' }}</small>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No audit logs found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.audit_log', page=pagination.prev_num, **request.args) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+        {% if page %}
+        <li class="page-item {% if page == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('hr.audit_log', page=page, **request.args) }}">{{ page }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.audit_log', page=pagination.next_num, **request.args) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Detail Modals -->
+{% for log in audit_logs %}
+{% if log.description|length > 50 %}
+<div class="modal fade" id="detailModal{{ log.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Audit Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-4">Timestamp</dt>
+                    <dd class="col-8">{{ log.timestamp.strftime('%d %b %Y %H:%M:%S') }}</dd>
+                    
+                    <dt class="col-4">User</dt>
+                    <dd class="col-8">{{ log.user.full_name if log.user else 'System' }}</dd>
+                    
+                    <dt class="col-4">Action</dt>
+                    <dd class="col-8">{{ log.action_type }}</dd>
+                    
+                    <dt class="col-4">Entity</dt>
+                    <dd class="col-8">{{ log.entity_type }} #{{ log.entity_id }}</dd>
+                    
+                    <dt class="col-4">IP Address</dt>
+                    <dd class="col-8">{{ log.ip_address or '-' }}</dd>
+                    
+                    <dt class="col-4">Details</dt>
+                    <dd class="col-8">{{ log.description }}</dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

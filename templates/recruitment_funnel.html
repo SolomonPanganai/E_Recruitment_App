@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Recruitment Funnel - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.reports') }}">Reports</a></li>
+                    <li class="breadcrumb-item active">Recruitment Funnel</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0"><i class="bi bi-funnel me-2"></i>Recruitment Funnel</h1>
+            <p class="text-muted mb-0">Visualize candidate progression through stages</p>
+        </div>
+        <a href="{{ url_for('hr.reports') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Reports
+        </a>
+    </div>
+
+    <!-- Job Filter -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Filter by Job</label>
+                    <select name="job_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Jobs (Aggregate)</option>
+                        {% for j in jobs %}
+                        <option value="{{ j.id }}" {% if job and job.id == j.id %}selected{% endif %}>
+                            {{ j.title }} ({{ j.job_reference }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    {% if job %}
+                    <a href="{{ url_for('hr.recruitment_funnel') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle me-1"></i>Clear Filter
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if job %}
+    <div class="alert alert-info border-0 shadow-sm mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Showing funnel for:</strong> {{ job.title }} ({{ job.job_reference }})
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Funnel Visualization -->
+        <div class="col-lg-7 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-steps me-2 text-primary"></i>Pipeline Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="funnel-wrapper">
+                        {% set max_val = funnel.applications if funnel.applications > 0 else 1 %}
+                        
+                        <!-- Applications -->
+                        <div class="funnel-step">
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar funnel-applications" style="width: 100%;">
+                                    <div class="funnel-content">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                        <span class="funnel-label">Applications</span>
+                                        <span class="funnel-count">{{ funnel.applications }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="funnel-arrow">
+                                <i class="bi bi-chevron-down text-muted"></i>
+                            </div>
+                        </div>
+
+                        <!-- Under Review -->
+                        {% set pct = ((funnel.under_review / max_val) * 100)|int if funnel.under_review else 0 %}
+                        <div class="funnel-step">
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar funnel-review" style="width: {{ [pct, 25]|max }}%;">
+                                    <div class="funnel-content">
+                                        <i class="bi bi-search"></i>
+                                        <span class="funnel-label">Under Review</span>
+                                        <span class="funnel-count">{{ funnel.under_review }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="funnel-conversion">
+                                {% set rate = (funnel.under_review / funnel.applications * 100) if funnel.applications else 0 %}
+                                <span class="badge bg-info-subtle text-info">{{ "%.0f"|format(rate) }}%</span>
+                            </div>
+                            <div class="funnel-arrow">
+                                <i class="bi bi-chevron-down text-muted"></i>
+                            </div>
+                        </div>
+
+                        <!-- Shortlisted -->
+                        {% set pct = ((funnel.shortlisted / max_val) * 100)|int if funnel.shortlisted else 0 %}
+                        <div class="funnel-step">
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar funnel-shortlist" style="width: {{ [pct, 20]|max }}%;">
+                                    <div class="funnel-content">
+                                        <i class="bi bi-star"></i>
+                                        <span class="funnel-label">Shortlisted</span>
+                                        <span class="funnel-count">{{ funnel.shortlisted }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="funnel-conversion">
+                                {% set rate = (funnel.shortlisted / funnel.under_review * 100) if funnel.under_review else 0 %}
+                                <span class="badge bg-warning-subtle text-warning">{{ "%.0f"|format(rate) }}%</span>
+                            </div>
+                            <div class="funnel-arrow">
+                                <i class="bi bi-chevron-down text-muted"></i>
+                            </div>
+                        </div>
+
+                        <!-- Interviewed -->
+                        {% set pct = ((funnel.interviewed / max_val) * 100)|int if funnel.interviewed else 0 %}
+                        <div class="funnel-step">
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar funnel-interview" style="width: {{ [pct, 15]|max }}%;">
+                                    <div class="funnel-content">
+                                        <i class="bi bi-camera-video"></i>
+                                        <span class="funnel-label">Interviewed</span>
+                                        <span class="funnel-count">{{ funnel.interviewed }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="funnel-conversion">
+                                {% set rate = (funnel.interviewed / funnel.shortlisted * 100) if funnel.shortlisted else 0 %}
+                                <span class="badge bg-success-subtle text-success">{{ "%.0f"|format(rate) }}%</span>
+                            </div>
+                            <div class="funnel-arrow">
+                                <i class="bi bi-chevron-down text-muted"></i>
+                            </div>
+                        </div>
+
+                        <!-- Offered -->
+                        {% set pct = ((funnel.offered / max_val) * 100)|int if funnel.offered else 0 %}
+                        <div class="funnel-step">
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar funnel-offer" style="width: {{ [pct, 10]|max }}%;">
+                                    <div class="funnel-content">
+                                        <i class="bi bi-trophy"></i>
+                                        <span class="funnel-label">Offered</span>
+                                        <span class="funnel-count">{{ funnel.offered }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="funnel-conversion">
+                                {% set rate = (funnel.offered / funnel.interviewed * 100) if funnel.interviewed else 0 %}
+                                <span class="badge bg-dark">{{ "%.0f"|format(rate) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Rate -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">
+                                <i class="bi bi-graph-up-arrow me-2"></i>Overall Conversion Rate
+                            </span>
+                            {% set overall = (funnel.offered / funnel.applications * 100) if funnel.applications else 0 %}
+                            <span class="badge bg-primary fs-5 px-3 py-2">{{ "%.1f"|format(overall) }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Column -->
+        <div class="col-lg-5 mb-4">
+            <!-- Conversion Rates Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0"><i class="bi bi-percent me-2 text-success"></i>Stage Conversion Rates</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="bi bi-arrow-right text-info me-2"></i>
+                                Applications → Review
+                            </div>
+                            {% set rate = (funnel.under_review / funnel.applications * 100) if funnel.applications else 0 %}
+                            <span class="badge bg-info rounded-pill px-3 py-2">{{ "%.1f"|format(rate) }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="bi bi-arrow-right text-warning me-2"></i>
+                                Review → Shortlist
+                            </div>
+                            {% set rate = (funnel.shortlisted / funnel.under_review * 100) if funnel.under_review else 0 %}
+                            <span class="badge bg-warning rounded-pill px-3 py-2">{{ "%.1f"|format(rate) }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="bi bi-arrow-right text-success me-2"></i>
+                                Shortlist → Interview
+                            </div>
+                            {% set rate = (funnel.interviewed / funnel.shortlisted * 100) if funnel.shortlisted else 0 %}
+                            <span class="badge bg-success rounded-pill px-3 py-2">{{ "%.1f"|format(rate) }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="bi bi-arrow-right text-dark me-2"></i>
+                                Interview → Offer
+                            </div>
+                            {% set rate = (funnel.offered / funnel.interviewed * 100) if funnel.interviewed else 0 %}
+                            <span class="badge bg-dark rounded-pill px-3 py-2">{{ "%.1f"|format(rate) }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drop-off Analysis -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0"><i class="bi bi-graph-down-arrow me-2 text-danger"></i>Drop-off Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-secondary rounded-pill fs-6">{{ funnel.applications - funnel.under_review }}</span>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <small class="text-muted">Candidates not reviewed</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-secondary rounded-pill fs-6">{{ funnel.under_review - funnel.shortlisted }}</span>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <small class="text-muted">Reviewed but not shortlisted</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-secondary rounded-pill fs-6">{{ funnel.shortlisted - funnel.interviewed }}</span>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <small class="text-muted">Shortlisted but not interviewed</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center p-2 bg-light rounded">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-secondary rounded-pill fs-6">{{ funnel.interviewed - funnel.offered }}</span>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <small class="text-muted">Interviewed but not offered</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.funnel-wrapper {
+    padding: 1rem 0;
+}
+
+.funnel-step {
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.funnel-bar-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.funnel-bar {
+    min-width: 200px;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.funnel-bar:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.funnel-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: white;
+    font-weight: 600;
+}
+
+.funnel-content i {
+    font-size: 1.25rem;
+}
+
+.funnel-label {
+    font-size: 0.95rem;
+}
+
+.funnel-count {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.funnel-applications {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.funnel-review {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.funnel-shortlist {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
+.funnel-shortlist .funnel-content {
+    color: #212529;
+}
+
+.funnel-interview {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.funnel-offer {
+    background: linear-gradient(135deg, #343a40 0%, #1d2124 100%);
+}
+
+.funnel-arrow {
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.funnel-arrow i {
+    font-size: 1.25rem;
+}
+
+.funnel-conversion {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.bg-info-subtle {
+    background-color: rgba(23, 162, 184, 0.15) !important;
+}
+
+.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+}
+
+.bg-success-subtle {
+    background-color: rgba(40, 167, 69, 0.15) !important;
+}
+
+.text-info {
+    color: #17a2b8 !important;
+}
+
+.text-warning {
+    color: #d39e00 !important;
+}
+
+@media (max-width: 768px) {
+    .funnel-bar {
+        min-width: 150px;
+        padding: 0.75rem 1rem;
+    }
+    
+    .funnel-content {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .funnel-label {
+        font-size: 0.8rem;
+    }
+    
+    .funnel-count {
+        font-size: 1.25rem;
+    }
+    
+    .funnel-conversion {
+        position: static;
+        text-align: center;
+        transform: none;
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

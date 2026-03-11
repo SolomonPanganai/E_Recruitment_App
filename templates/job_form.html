@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.jobs') }}">Jobs</a></li>
+                <li class="breadcrumb-item active">{{ title }}</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-{% if job %}pencil-square{% else %}plus-lg{% endif %}"></i>
+                    {{ title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <!-- Basic Information -->
+                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Job Title <span class="text-danger">*</span></label>
+                        {{ form.title(class="form-control", placeholder="e.g. Senior Software Developer") }}
+                        {% for error in form.title.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="department" class="form-label">Department <span class="text-danger">*</span></label>
+                            {{ form.department(class="form-control", placeholder="e.g. Information Technology") }}
+                            {% for error in form.department.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
+                            {{ form.location(class="form-control", placeholder="e.g. Head Office, Pretoria") }}
+                            {% for error in form.location.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="salary_range" class="form-label">Salary Range</label>
+                            {{ form.salary_range(class="form-control", placeholder="e.g. R400,000 - R500,000 p/a") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="closing_date" class="form-label">Closing Date <span class="text-danger">*</span></label>
+                            {{ form.closing_date(class="form-control", type="date") }}
+                            {% for error in form.closing_date.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Job Details -->
+                    <h5 class="mb-3"><i class="bi bi-file-text"></i> Job Details</h5>
+
+                    <div class="mb-3">
+                        <label for="job_purpose" class="form-label">Job Purpose <span class="text-danger">*</span></label>
+                        {{ form.job_purpose(class="form-control", rows="4", placeholder="Describe the main purpose and objectives of this role...") }}
+                        {% for error in form.job_purpose.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="responsibilities" class="form-label">Key Responsibilities <span class="text-danger">*</span></label>
+                        {{ form.responsibilities(class="form-control", rows="5", placeholder="List the key responsibilities and duties (one per line)...") }}
+                        {% for error in form.responsibilities.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Requirements -->
+                    <h5 class="mb-3"><i class="bi bi-list-check"></i> Requirements</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="min_education" class="form-label">Minimum Education <span class="text-danger">*</span></label>
+                            {{ form.min_education(class="form-select") }}
+                            {% for error in form.min_education.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="min_experience_years" class="form-label">Minimum Experience (Years) <span class="text-danger">*</span></label>
+                            {{ form.min_experience_years(class="form-control", type="number", min="0", placeholder="e.g. 3") }}
+                            {% for error in form.min_experience_years.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="required_skills" class="form-label">Required Skills <span class="text-danger">*</span></label>
+                        {{ form.required_skills(class="form-control", rows="4", placeholder="Enter required skills (one per line):\nPython programming\nDatabase management\nStrong communication") }}
+                        <small class="text-muted">Enter each skill on a new line</small>
+                        {% for error in form.required_skills.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="preferred_skills" class="form-label">Preferred Skills (Optional)</label>
+                        {{ form.preferred_skills(class="form-control", rows="3", placeholder="Enter preferred/nice-to-have skills (one per line)...") }}
+                        <small class="text-muted">Enter each skill on a new line</small>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Status and Options -->
+                    <h5 class="mb-3"><i class="bi bi-gear"></i> Publishing Options</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="ee_target_category" class="form-label">EE Target Category</label>
+                            {{ form.ee_target_category(class="form-control", placeholder="e.g. African Female, People with Disabilities") }}
+                            <small class="text-muted">Leave empty if position is open to all candidates</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                            {{ form.status(class="form-select") }}
+                            {% for error in form.status.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('hr.jobs') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ 'Update Job Posting' if job else 'Create Job Posting' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

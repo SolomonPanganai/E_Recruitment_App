@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <h2><i class="bi bi-envelope"></i> Contact Us</h2>
+        <p class="lead">Have questions about the recruitment process? We're here to help.</p>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Human Resources Department</h5>
+                
+                <div class="mb-3">
+                    <i class="bi bi-geo-alt text-primary me-2"></i>
+                    <strong>Address:</strong><br>
+                    <span class="ms-4">123 Municipal Street</span><br>
+                    <span class="ms-4">City Center, 0001</span><br>
+                    <span class="ms-4">South Africa</span>
+                </div>
+                
+                <div class="mb-3">
+                    <i class="bi bi-telephone text-primary me-2"></i>
+                    <strong>Phone:</strong><br>
+                    <span class="ms-4">+27 (0)12 345 6789</span>
+                </div>
+                
+                <div class="mb-3">
+                    <i class="bi bi-envelope text-primary me-2"></i>
+                    <strong>Email:</strong><br>
+                    <span class="ms-4">hr@municipality.gov.za</span>
+                </div>
+                
+                <div class="mb-3">
+                    <i class="bi bi-clock text-primary me-2"></i>
+                    <strong>Office Hours:</strong><br>
+                    <span class="ms-4">Monday - Friday: 08:00 - 16:30</span><br>
+                    <span class="ms-4">Saturday - Sunday: Closed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Send us a Message</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label">Your Name</label>
+                        <input type="text" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <select class="form-select" required>
+                            <option value="">Select a subject...</option>
+                            <option value="application">Application Inquiry</option>
+                            <option value="technical">Technical Support</option>
+                            <option value="general">General Question</option>
+                            <option value="feedback">Feedback</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" rows="5" placeholder="How can we help you?" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Send Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Support Resources -->
+<div class="row mt-4">
+    <div class="col-12">
+        <h4 class="mb-3">Helpful Resources</h4>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-question-circle text-primary" style="font-size: 2rem;"></i>
+                <h5 class="mt-2">FAQ</h5>
+                <p class="text-muted">Find answers to common questions</p>
+                <a href="{{ url_for('main.faq') }}" class="btn btn-outline-primary">View FAQ</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-briefcase text-primary" style="font-size: 2rem;"></i>
+                <h5 class="mt-2">Job Listings</h5>
+                <p class="text-muted">Browse current vacancies</p>
+                <a href="{{ url_for('main.jobs') }}" class="btn btn-outline-primary">View Jobs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-person-plus text-primary" style="font-size: 2rem;"></i>
+                <h5 class="mt-2">Register</h5>
+                <p class="text-muted">Create an account to apply</p>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">Register Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

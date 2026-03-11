@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> Staff Management</h2>
+    <div>
+        <a href="{{ url_for('hr.create_staff') }}" class="btn btn-success me-2">
+            <i class="bi bi-person-plus"></i> Add Staff
+        </a>
+        <a href="{{ url_for('hr.view_applicants') }}" class="btn btn-info me-2">
+            <i class="bi bi-people-fill"></i> View Applicants
+        </a>
+        <a href="{{ url_for('hr.live_activity') }}" class="btn btn-warning me-2">
+            <i class="bi bi-activity"></i> Live Activity
+        </a>
+        <a href="{{ url_for('hr.audit_log') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-journal-text"></i> Audit Log
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h4>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h4>
+                <small>Admins</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</h4>
+                <small>Managers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ users|selectattr('role', 'equalto', 'hr_officer')|list|length }}</h4>
+                <small>HR Officers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h4>{{ users|selectattr('role', 'equalto', 'applicant')|list|length }}</h4>
+                <small>Applicants</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-select">
+                    <option value="">All Roles</option>
+                    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="hr_officer" {% if role_filter == 'hr_officer' %}selected{% endif %}>HR Officer</option>
+                    <option value="manager" {% if role_filter == 'manager' %}selected{% endif %}>Manager</option>
+                    <option value="applicant" {% if role_filter == 'applicant' %}selected{% endif %}>Applicant</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Name or email..." value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Registered</th>
+                    <th>Last Login</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        <strong>{{ user.full_name }}</strong><br>
+                        <small class="text-muted">@{{ user.username }}</small>
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="badge bg-{% if user.role == 'admin' %}danger{% elif user.role == 'hr_officer' %}primary{% elif user.role == 'manager' %}info{% else %}secondary{% endif %}">
+                            {{ user.role|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%d %b %Y') if user.created_at else 'N/A' }}</td>
+                    <td>{{ user.last_login.strftime('%d %b %Y %H:%M') if user.last_login else 'Never' }}</td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('hr.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if user.role != 'applicant' and user.id != current_user.id %}
+                        <form action="{{ url_for('hr.delete_staff', user_id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ user.full_name }}? This action cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No users found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.manage_users', page=pagination.prev_num, role=role_filter) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+        {% if page %}
+        <li class="page-item {% if page == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('hr.manage_users', page=page, role=role_filter) }}">{{ page }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.manage_users', page=pagination.next_num, role=role_filter) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

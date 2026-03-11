@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Live Activity - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-activity"></i> Live System Activity</h2>
+    <div>
+        <span class="badge bg-success" id="connection-status">
+            <i class="bi bi-circle-fill"></i> Live
+        </span>
+        <a href="{{ url_for('hr.manage_users') }}" class="btn btn-outline-secondary ms-2">
+            <i class="bi bi-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+<!-- Activity Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-people" style="font-size: 2rem;"></i>
+                <h3 id="active-users-count">{{ active_users|length }}</h3>
+                <small>Active Users (15 min)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-box-arrow-in-right" style="font-size: 2rem;"></i>
+                <h3>{{ activity_summary.get('login', 0) }}</h3>
+                <small>Logins (24h)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-eye" style="font-size: 2rem;"></i>
+                <h3>{{ activity_summary.get('page_view', 0) }}</h3>
+                <small>Page Views (24h)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <i class="bi bi-lightning" style="font-size: 2rem;"></i>
+                <h3>{{ activity_summary.get('action', 0) }}</h3>
+                <small>Actions (24h)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Currently Active Users -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-person-check"></i> Currently Online</h5>
+            </div>
+            <div class="card-body" id="active-users-list">
+                {% if active_users %}
+                <ul class="list-group list-group-flush">
+                    {% for user in active_users %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ user.full_name }}</strong><br>
+                            <small class="text-muted">
+                                <span class="badge bg-{% if user.role == 'admin' %}danger{% elif user.role == 'hr_officer' %}primary{% elif user.role == 'manager' %}info{% else %}secondary{% endif %}">
+                                    {{ user.role|replace('_', ' ')|title }}
+                                </span>
+                            </small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">
+                            <i class="bi bi-circle-fill"></i>
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center mb-0">No users currently active</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Logins -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Recent Logins</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% if recent_logins %}
+                <ul class="list-group list-group-flush">
+                    {% for login in recent_logins %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ login.user.full_name if login.user else 'Unknown' }}</strong>
+                            <small class="text-muted">{{ login.timestamp.strftime('%H:%M') }}</small>
+                        </div>
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt"></i> {{ login.ip_address or 'Unknown IP' }}
+                        </small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center mb-0">No recent logins</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Activity Feed -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Activity Feed</h5>
+                <button class="btn btn-sm btn-dark" onclick="refreshActivity()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <div class="card-body p-0" id="activity-feed" style="max-height: 400px; overflow-y: auto;">
+                {% if activities %}
+                <ul class="list-group list-group-flush">
+                    {% for activity in activities[:20] %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-{% if activity.activity_type == 'login' %}success{% elif activity.activity_type == 'action' %}warning{% else %}info{% endif %} me-1">
+                                    {{ activity.activity_type }}
+                                </span>
+                                <strong>{{ activity.user.full_name if activity.user else 'Unknown' }}</strong>
+                            </div>
+                            <small class="text-muted">{{ activity.timestamp.strftime('%H:%M:%S') }}</small>
+                        </div>
+                        {% if activity.description %}
+                        <small class="text-muted d-block">{{ activity.description }}</small>
+                        {% endif %}
+                        {% if activity.page %}
+                        <small class="text-muted"><i class="bi bi-link-45deg"></i> {{ activity.page }}</small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">No recent activity</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Activity Log -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Activity Log (Last 24 Hours)</h5>
+        <a href="{{ url_for('hr.audit_log') }}" class="btn btn-sm btn-outline-secondary">
+            View Full Audit Log
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Activity</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody id="activity-table">
+                {% for activity in activities %}
+                <tr>
+                    <td>{{ activity.timestamp.strftime('%d %b %H:%M:%S') }}</td>
+                    <td>{{ activity.user.full_name if activity.user else 'Unknown' }}</td>
+                    <td>
+                        {% if activity.user %}
+                        <span class="badge bg-{% if activity.user.role == 'admin' %}danger{% elif activity.user.role == 'hr_officer' %}primary{% elif activity.user.role == 'manager' %}info{% else %}secondary{% endif %}">
+                            {{ activity.user.role|replace('_', ' ')|title }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if activity.activity_type == 'login' %}success{% elif activity.activity_type == 'logout' %}secondary{% elif activity.activity_type == 'action' %}warning{% else %}info{% endif %}">
+                            {{ activity.activity_type }}
+                        </span>
+                    </td>
+                    <td>{{ activity.description or activity.page or '-' }}</td>
+                    <td><code>{{ activity.ip_address or '-' }}</code></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No activity recorded in the last 24 hours.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let lastUpdate = new Date().toISOString();
+
+function refreshActivity() {
+    fetch('{{ url_for("hr.activity_api") }}?since=' + lastUpdate)
+        .then(response => response.json())
+        .then(data => {
+            if (data.activities.length > 0) {
+                lastUpdate = data.server_time;
+                
+                // Update activity feed
+                const feed = document.getElementById('activity-feed');
+                const ul = feed.querySelector('ul') || document.createElement('ul');
+                ul.className = 'list-group list-group-flush';
+                
+                data.activities.forEach(activity => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item py-2 bg-light';
+                    li.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-${activity.activity_type === 'login' ? 'success' : activity.activity_type === 'action' ? 'warning' : 'info'} me-1">
+                                    ${activity.activity_type}
+                                </span>
+                                <strong>${activity.user}</strong>
+                            </div>
+                            <small class="text-muted">${new Date(activity.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                        ${activity.description ? `<small class="text-muted d-block">${activity.description}</small>` : ''}
+                    `;
+                    ul.insertBefore(li, ul.firstChild);
+                });
+                
+                if (!feed.querySelector('ul')) {
+                    feed.innerHTML = '';
+                    feed.appendChild(ul);
+                }
+                
+                // Remove old background after 5 seconds
+                setTimeout(() => {
+                    document.querySelectorAll('#activity-feed .bg-light').forEach(el => {
+                        el.classList.remove('bg-light');
+                    });
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching activity:', error);
+            document.getElementById('connection-status').className = 'badge bg-danger';
+            document.getElementById('connection-status').innerHTML = '<i class="bi bi-circle-fill"></i> Disconnected';
+        });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(refreshActivity, 30000);
+</script>
+{% endblock %}

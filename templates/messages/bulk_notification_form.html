@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Send Bulk Notification - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.messages_inbox') }}">Messages</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.bulk_notifications') }}">Bulk Notifications</a></li>
+                <li class="breadcrumb-item active">Create</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-megaphone me-2"></i>Send Bulk Notification</h2>
+        <p class="text-muted mb-0">Send messages to multiple applicants at once</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Template Selection -->
+                        {% if templates %}
+                        <div class="mb-3">
+                            <label class="form-label">Use Template (Optional)</label>
+                            <select id="template_select" class="form-select">
+                                <option value="">-- Select Template --</option>
+                                {% for t in templates %}
+                                <option value="{{ t.id }}">{{ t.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <!-- Target Audience -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="bi bi-people me-1"></i>Target Audience</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Select Recipients</label>
+                                    <select name="target_type" id="target_type" class="form-select" required>
+                                        <option value="all_applicants">All Active Applicants</option>
+                                        <option value="job_applicants">Applicants for Specific Job</option>
+                                        <option value="status_group">Applicants with Specific Status</option>
+                                    </select>
+                                </div>
+
+                                <div id="job_select_group" class="mb-3" style="display: none;">
+                                    <label class="form-label">Select Job</label>
+                                    <select name="target_job_id" class="form-select">
+                                        <option value="">-- Select Job --</option>
+                                        {% for job in jobs %}
+                                        <option value="{{ job.id }}">{{ job.title }} ({{ job.applications_count }} applicants)</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div id="status_select_group" class="mb-3" style="display: none;">
+                                    <label class="form-label">Select Status</label>
+                                    <select name="target_status" class="form-select">
+                                        <option value="">-- Select Status --</option>
+                                        {% for status in statuses %}
+                                        <option value="{{ status }}">{{ status|replace('_', ' ')|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div class="mb-3">
+                            <label class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="subject" id="subject_input" class="form-control" required
+                                   placeholder="Notification subject">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Message <span class="text-danger">*</span></label>
+                            <textarea name="body" id="body_input" class="form-control" rows="8" required
+                                      placeholder="Your notification message..."></textarea>
+                        </div>
+
+                        <!-- Delivery Options -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="bi bi-send me-1"></i>Delivery Options</h6>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="send_internal" id="send_internal" checked>
+                                    <label class="form-check-label" for="send_internal">
+                                        <i class="bi bi-chat-dots text-info me-1"></i>
+                                        Send as internal message
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="send_email" id="send_email" checked>
+                                    <label class="form-check-label" for="send_email">
+                                        <i class="bi bi-envelope text-primary me-1"></i>
+                                        Send as email notification
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>Note:</strong> This action cannot be undone. Please review before sending.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Send Notification
+                            </button>
+                            <a href="{{ url_for('hr.bulk_notifications') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i>About Bulk Notifications</h6>
+                </div>
+                <div class="card-body small">
+                    <p>Bulk notifications allow you to send the same message to multiple applicants simultaneously.</p>
+                    
+                    <h6>Use Cases:</h6>
+                    <ul>
+                        <li>Announce company events</li>
+                        <li>Share important updates</li>
+                        <li>Remind applicants about deadlines</li>
+                        <li>Notify about position closures</li>
+                    </ul>
+
+                    <h6>Target Options:</h6>
+                    <ul>
+                        <li><strong>All Applicants:</strong> Every registered applicant</li>
+                        <li><strong>Job Applicants:</strong> Only those who applied for a specific job</li>
+                        <li><strong>Status Group:</strong> Applicants with a specific application status</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('target_type')?.addEventListener('change', function() {
+    const jobGroup = document.getElementById('job_select_group');
+    const statusGroup = document.getElementById('status_select_group');
+    
+    jobGroup.style.display = this.value === 'job_applicants' ? 'block' : 'none';
+    statusGroup.style.display = this.value === 'status_group' ? 'block' : 'none';
+});
+
+document.getElementById('template_select')?.addEventListener('change', function() {
+    const templateId = this.value;
+    if (!templateId) return;
+    
+    fetch(`/hr/api/templates/${templateId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('subject_input').value = data.subject;
+            document.getElementById('body_input').value = data.body;
+        });
+});
+</script>
+{% endblock %}

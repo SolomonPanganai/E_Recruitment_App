@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Interviews - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-camera-video me-2"></i>Interview Management</h1>
+            <p class="text-muted mb-0">Schedule and manage candidate interviews</p>
+        </div>
+        <div class="btn-group">
+            <a href="{{ url_for('hr.interviews_list', view='list') }}" 
+               class="btn btn-{% if view_type == 'list' %}primary{% else %}outline-primary{% endif %}">
+                <i class="bi bi-list-ul me-1"></i>List
+            </a>
+            <a href="{{ url_for('hr.interviews_list', view='calendar') }}" 
+               class="btn btn-{% if view_type == 'calendar' %}primary{% else %}outline-primary{% endif %}">
+                <i class="bi bi-calendar3 me-1"></i>Calendar
+            </a>
+        </div>
+    </div>
+
+    <!-- Upcoming Interviews Alert -->
+    {% if upcoming %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-bell fs-4 me-3"></i>
+            <div>
+                <strong>{{ upcoming|length }} upcoming interview{% if upcoming|length > 1 %}s{% endif %} this week</strong>
+                <span class="ms-3">
+                    {% for interview in upcoming[:3] %}
+                    <span class="badge bg-primary me-1">
+                        {{ interview.scheduled_date.strftime('%d %b') }} - {{ interview.application.applicant.full_name }}
+                    </span>
+                    {% endfor %}
+                    {% if upcoming|length > 3 %}
+                    <span class="badge bg-secondary">+{{ upcoming|length - 3 }} more</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <input type="hidden" name="view" value="{{ view_type }}">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="no_show" {% if status_filter == 'no_show' %}selected{% endif %}>No Show</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('hr.interviews_list', view=view_type) }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if view_type == 'list' %}
+    <!-- List View -->
+    <div class="card">
+        <div class="card-body">
+            {% if interviews %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Position</th>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for interview in interviews %}
+                        <tr>
+                            <td>
+                                <strong>{{ interview.application.applicant.full_name }}</strong><br>
+                                <small class="text-muted">{{ interview.application.application_reference }}</small>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('hr.job_detail', job_id=interview.application.job_id) }}">
+                                    {{ interview.application.job.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {{ interview.scheduled_date.strftime('%d %b %Y') }}<br>
+                                <small>{{ interview.start_time.strftime('%H:%M') }} - {{ interview.end_time.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if interview.interview_type == 'video' %}info{% elif interview.interview_type == 'phone' %}warning{% else %}secondary{% endif %}">
+                                    <i class="bi bi-{% if interview.interview_type == 'video' %}camera-video{% elif interview.interview_type == 'phone' %}telephone{% else %}building{% endif %} me-1"></i>
+                                    {{ interview.interview_type.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if interview.status == 'scheduled' %}
+                                <span class="badge bg-primary">Scheduled</span>
+                                {% elif interview.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% elif interview.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Cancelled</span>
+                                {% elif interview.status == 'no_show' %}
+                                <span class="badge bg-danger">No Show</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if interview.score %}
+                                <span class="fw-bold">{{ interview.score }}/10</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('hr.interview_detail', interview_id=interview.id) }}" 
+                                       class="btn btn-outline-primary" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if interview.status == 'scheduled' %}
+                                    <a href="{{ url_for('hr.interview_feedback', interview_id=interview.id) }}" 
+                                       class="btn btn-outline-success" title="Feedback">
+                                        <i class="bi bi-chat-square-text"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x display-1 text-muted"></i>
+                <h4 class="mt-3">No interviews found</h4>
+                <p class="text-muted">Schedule interviews from the application detail page.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Calendar View -->
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                {% for date_str, day_interviews in calendar_data.items() %}
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <strong>{{ day_interviews[0].scheduled_date.strftime('%A, %d %b') }}</strong>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for interview in day_interviews %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <small class="text-muted">{{ interview.start_time.strftime('%H:%M') }}</small>
+                                        <div><strong>{{ interview.application.applicant.full_name }}</strong></div>
+                                        <small>{{ interview.application.job.title[:25] }}...</small>
+                                    </div>
+                                    <span class="badge bg-{% if interview.status == 'scheduled' %}primary{% elif interview.status == 'completed' %}success{% else %}secondary{% endif %}">
+                                        {{ interview.status[:4] }}
+                                    </span>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-calendar-x display-1 text-muted"></i>
+                    <h4 class="mt-3">No interviews scheduled</h4>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

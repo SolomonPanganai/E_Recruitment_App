@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}Committee Review & Voting - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Committee Review & Voting</h1>
+            <p class="text-muted">Review candidates and cast your vote</p>
+        </div>
+    </div>
+
+    <!-- Pending Reviews Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Pending Reviews</h5>
+        </div>
+        <div class="card-body">
+            <div id="pendingReviews">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Votes Section -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-check-circle"></i> Your Votes</h5>
+        </div>
+        <div class="card-body">
+            <div id="completedVotes">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Voting Modal -->
+<div class="modal fade" id="votingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review & Vote: <span id="candidateName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="candidateDetails">
+                    <!-- Loaded dynamically -->
+                </div>
+                <hr>
+                <div class="voting-section">
+                    <h6>Your Vote</h6>
+                    <div class="mb-3">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="vote" id="voteApproved" value="approved">
+                            <label class="btn btn-outline-success" for="voteApproved">
+                                <i class="fas fa-thumbs-up"></i> Approved
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="vote" id="voteAbstain" value="abstain">
+                            <label class="btn btn-outline-warning" for="voteAbstain">
+                                <i class="fas fa-minus"></i> Abstain
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="vote" id="voteRejected" value="rejected">
+                            <label class="btn btn-outline-danger" for="voteRejected">
+                                <i class="fas fa-thumbs-down"></i> Rejected
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ratingStars" class="form-label">Rating (Optional)</label>
+                        <div id="ratingStars" class="rating">
+                            <i class="fas fa-star" data-rating="1"></i>
+                            <i class="fas fa-star" data-rating="2"></i>
+                            <i class="fas fa-star" data-rating="3"></i>
+                            <i class="fas fa-star" data-rating="4"></i>
+                            <i class="fas fa-star" data-rating="5"></i>
+                        </div>
+                        <input type="hidden" id="selectedRating" value="0">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="voteComments" class="form-label">Comments</label>
+                        <textarea class="form-control" id="voteComments" rows="4" 
+                                  placeholder="Share your thoughts about this candidate..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitVote()">
+                    <i class="fas fa-paper-plane"></i> Submit Vote
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Application Details Modal -->
+<div class="modal fade" id="applicationDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="applicationDetailsContent">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentReviewData = null;
+let selectedRating = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadPendingReviews();
+    loadCompletedVotes();
+    setupRatingStars();
+});
+
+function loadPendingReviews() {
+    fetch('/api/committee/pending-reviews')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('pendingReviews');
+            
+            if (!data.reviews || data.reviews.length === 0) {
+                container.innerHTML = '<p class="text-muted">No pending reviews</p>';
+                return;
+            }
+            
+            container.innerHTML = data.reviews.map(review => `
+                <div class="review-item p-3 border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 class="mb-1">${review.candidate_name}</h6>
+                            <small class="text-muted">${review.job_title}</small><br>
+                            <small class="text-muted">Committee: ${review.committee_name}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-warning">Pending Your Vote</span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-primary" 
+                                    onclick="startVotingProcess(${review.decision_id}, ${review.application_id}, 
+                                             ${review.member_id})">
+                                Review & Vote
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading pending reviews:', error);
+            document.getElementById('pendingReviews').innerHTML = 
+                '<p class="text-danger">Error loading pending reviews</p>';
+        });
+}
+
+function loadCompletedVotes() {
+    fetch('/api/committee/my-votes')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('completedVotes');
+            
+            if (!data.votes || data.votes.length === 0) {
+                container.innerHTML = '<p class="text-muted">No completed votes</p>';
+                return;
+            }
+            
+            container.innerHTML = data.votes.map(vote => {
+                const voteColor = vote.vote === 'approved' ? 'success' : vote.vote === 'rejected' ? 'danger' : 'warning';
+                const voteIcon = vote.vote === 'approved' ? 'thumbs-up' : vote.vote === 'rejected' ? 'thumbs-down' : 'minus';
+                
+                return `
+                    <div class="vote-item p-3 border-bottom">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="mb-1">${vote.candidate_name}</h6>
+                                <small class="text-muted">${vote.job_title}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-${voteColor}">
+                                    <i class="fas fa-${voteIcon}"></i>
+                                    ${vote.vote.charAt(0).toUpperCase() + vote.vote.slice(1)}
+                                </span>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <small class="text-muted">${new Date(vote.voted_at).toLocaleDateString()}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(error => console.error('Error loading completed votes:', error));
+}
+
+function startVotingProcess(decisionId, applicationId, memberId) {
+    // Fetch candidate and application details
+    fetch(`/api/applications/${applicationId}`)
+        .then(response => response.json())
+        .then(applicant => {
+            currentReviewData = {
+                decision_id: decisionId,
+                application_id: applicationId,
+                member_id: memberId,
+                candidate_name: applicant.full_name
+            };
+            
+            document.getElementById('candidateName').textContent = applicant.full_name;
+            
+            // Build candidate details
+            const detailsHtml = `
+                <div class="candidate-overview">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Name:</dt>
+                                <dd class="col-sm-7">${applicant.full_name}</dd>
+                                <dt class="col-sm-5">Email:</dt>
+                                <dd class="col-sm-7">${applicant.email}</dd>
+                                <dt class="col-sm-5">Phone:</dt>
+                                <dd class="col-sm-7">${applicant.phone || 'N/A'}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Applied:</dt>
+                                <dd class="col-sm-7">${new Date(applicant.application_date).toLocaleDateString()}</dd>
+                                <dt class="col-sm-5">Status:</dt>
+                                <dd class="col-sm-7"><span class="badge bg-info">${applicant.status}</span></dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                onclick="viewFullApplicationDetails(${applicationId})">
+                            View Full Application & Documents
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('candidateDetails').innerHTML = detailsHtml;
+            
+            // Reset form
+            document.querySelectorAll('input[name="vote"]').forEach(el => el.checked = false);
+            document.getElementById('voteComments').value = '';
+            selectedRating = 0;
+            updateRatingDisplay();
+            
+            new bootstrap.Modal(document.getElementById('votingModal')).show();
+        })
+        .catch(error => console.error('Error loading application details:', error));
+}
+
+function viewFullApplicationDetails(applicationId) {
+    fetch(`/api/applications/${applicationId}/full`)
+        .then(response => response.json())
+        .then(application => {
+            const documentsHtml = application.documents.map(doc => `
+                <a href="${doc.url}" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                    <i class="fas fa-file-download"></i> ${doc.type}
+                </a>
+            `).join('');
+            
+            const detailsHtml = `
+                <div class="mb-4">
+                    <h6>Cover Letter</h6>
+                    <p>${application.cover_letter || 'No cover letter provided'}</p>
+                </div>
+                <div class="mb-4">
+                    <h6>Screening Score</h6>
+                    <p>${application.screening_score ? application.screening_score.toFixed(1) + '/100' : 'Not yet scored'}</p>
+                </div>
+                <div class="mb-4">
+                    <h6>Documents</h6>
+                    <div>${documentsHtml || '<p>No documents</p>'}</div>
+                </div>
+            `;
+            
+            document.getElementById('applicationDetailsContent').innerHTML = detailsHtml;
+            new bootstrap.Modal(document.getElementById('applicationDetailsModal')).show();
+        })
+        .catch(error => console.error('Error loading full application:', error));
+}
+
+function setupRatingStars() {
+    const stars = document.getElementById('ratingStars').querySelectorAll('i');
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            selectedRating = this.dataset.rating;
+            document.getElementById('selectedRating').value = selectedRating;
+            updateRatingDisplay();
+        });
+        star.addEventListener('mouseover', function() {
+            stars.forEach((s, idx) => {
+                if (idx < this.dataset.rating) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    document.getElementById('ratingStars').addEventListener('mouseout', updateRatingDisplay);
+}
+
+function updateRatingDisplay() {
+    const stars = document.getElementById('ratingStars').querySelectorAll('i');
+    stars.forEach((star, idx) => {
+        if (idx < selectedRating) {
+            star.classList.add('active');
+        } else {
+            star.classList.remove('active');
+        }
+    });
+}
+
+function submitVote() {
+    const vote = document.querySelector('input[name="vote"]:checked').value;
+    const comments = document.getElementById('voteComments').value;
+    const rating = selectedRating > 0 ? selectedRating : null;
+    
+    if (!vote) {
+        alert('Please select a vote option');
+        return;
+    }
+    
+    fetch(`/api/committees/${currentReviewData.decision_id}/vote`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            vote: vote,
+            member_id: currentReviewData.member_id,
+            comments: comments,
+            rating: rating
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to submit vote');
+        return response.json();
+    })
+    .then(result => {
+        alert('Your vote has been recorded successfully!');
+        bootstrap.Modal.getInstance(document.getElementById('votingModal')).hide();
+        loadPendingReviews();
+        loadCompletedVotes();
+    })
+    .catch(error => {
+        alert('Error submitting vote: ' + error.message);
+        console.error('Error:', error);
+    });
+}
+</script>
+
+<style>
+.review-item {
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.review-item:hover {
+    background-color: #e9ecef;
+}
+
+.vote-item {
+    background-color: #fff;
+    border-radius: 0.25rem;
+}
+
+.rating i {
+    font-size: 1.5rem;
+    color: #ddd;
+    cursor: pointer;
+    margin-right: 0.25rem;
+    transition: color 0.2s;
+}
+
+.rating i.active {
+    color: #ffc107;
+}
+
+.rating i:hover {
+    color: #ffc107;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Application {{ application.application_reference }} - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Application Details -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-file-earmark-text"></i> Application Details
+                </h4>
+                <span class="badge 
+                    {% if application.status == 'submitted' %}bg-secondary
+                    {% elif application.status == 'under_review' %}bg-info
+                    {% elif application.status == 'shortlisted' %}bg-success
+                    {% elif application.status == 'interviewed' %}bg-primary
+                    {% elif application.status == 'offered' %}bg-warning text-dark
+                    {% elif application.status == 'rejected' %}bg-danger
+                    {% elif application.status == 'withdrawn' %}bg-dark
+                    {% endif %} fs-6">
+                    {{ application.status|replace('_', ' ')|title }}
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Reference Number</dt>
+                    <dd class="col-sm-8"><code>{{ application.application_reference }}</code></dd>
+                    
+                    <dt class="col-sm-4">Position</dt>
+                    <dd class="col-sm-8">
+                        <a href="{{ url_for('main.job_detail', job_id=application.job.id) }}">
+                            {{ application.job.title }}
+                        </a>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Department</dt>
+                    <dd class="col-sm-8">{{ application.job.department }}</dd>
+                    
+                    <dt class="col-sm-4">Job Reference</dt>
+                    <dd class="col-sm-8">{{ application.job.job_reference }}</dd>
+                    
+                    <dt class="col-sm-4">Applied On</dt>
+                    <dd class="col-sm-8">{{ application.application_date.strftime('%d %B %Y at %H:%M') }}</dd>
+                    
+                    <dt class="col-sm-4">Current Stage</dt>
+                    <dd class="col-sm-8">{{ application.current_stage }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Cover Letter -->
+        {% if application.cover_letter %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-quote"></i> Cover Letter</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ application.cover_letter }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Documents -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-folder"></i> Submitted Documents</h5>
+            </div>
+            <div class="card-body">
+                {% if application.documents.count() > 0 %}
+                <ul class="list-group">
+                    {% for doc in application.documents %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-file-earmark"></i>
+                            {{ doc.file_name }}
+                            <span class="badge bg-secondary ms-2">{{ doc.document_type|title }}</span>
+                        </div>
+                        <small class="text-muted">{{ doc.uploaded_at.strftime('%d %b %Y') }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No documents uploaded.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Interviews -->
+        {% if application.interviews.count() > 0 %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Interviews</h5>
+            </div>
+            <div class="card-body">
+                {% for interview in application.interviews %}
+                <div class="border rounded p-3 {% if not loop.last %}mb-3{% endif %}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="mb-1">{{ interview.scheduled_date.strftime('%A, %d %B %Y') }}</h6>
+                            <p class="mb-1">
+                                <i class="bi bi-clock"></i> 
+                                {{ interview.start_time.strftime('%H:%M') }} - {{ interview.end_time.strftime('%H:%M') }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="bi bi-geo-alt"></i> {{ interview.location }}
+                            </p>
+                            <p class="mb-0 text-muted">
+                                <i class="bi bi-camera-video"></i> {{ interview.interview_type|replace('_', ' ')|title }}
+                            </p>
+                        </div>
+                        <span class="badge 
+                            {% if interview.status == 'scheduled' %}bg-info
+                            {% elif interview.status == 'completed' %}bg-success
+                            {% elif interview.status == 'cancelled' %}bg-danger
+                            {% elif interview.status == 'no_show' %}bg-warning
+                            {% endif %} h-fit">
+                            {{ interview.status|title }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Offer -->
+        {% if application.offer %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-gift"></i> Job Offer</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-sm-4">Salary Offered</dt>
+                    <dd class="col-sm-8">{{ application.offer.salary_offered }}</dd>
+                    
+                    <dt class="col-sm-4">Proposed Start Date</dt>
+                    <dd class="col-sm-8">{{ application.offer.start_date_proposed.strftime('%d %B %Y') }}</dd>
+                    
+                    <dt class="col-sm-4">Response Deadline</dt>
+                    <dd class="col-sm-8">{{ application.offer.response_deadline.strftime('%d %B %Y') if application.offer.response_deadline else 'N/A' }}</dd>
+                    
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge 
+                            {% if application.offer.status == 'pending' %}bg-warning text-dark
+                            {% elif application.offer.status == 'accepted' %}bg-success
+                            {% elif application.offer.status == 'declined' %}bg-danger
+                            {% elif application.offer.status == 'expired' %}bg-secondary
+                            {% endif %}">
+                            {{ application.offer.status|title }}
+                        </span>
+                    </dd>
+                </dl>
+                
+                {% if application.offer.status == 'pending' %}
+                <a href="{{ url_for('applicant.respond_to_offer', offer_id=application.offer.id) }}" class="btn btn-success">
+                    <i class="bi bi-reply"></i> Respond to Offer
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Status Timeline -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Status Timeline</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <div>
+                            <strong>Submitted</strong><br>
+                            <small class="text-muted">{{ application.application_date.strftime('%d %b %Y') }}</small>
+                        </div>
+                    </li>
+                    
+                    <li class="mb-3 d-flex">
+                        <i class="bi {% if application.status in ['under_review', 'shortlisted', 'interviewed', 'offered'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} me-2"></i>
+                        <div>
+                            <strong>Under Review</strong>
+                        </div>
+                    </li>
+                    
+                    <li class="mb-3 d-flex">
+                        <i class="bi {% if application.status in ['shortlisted', 'interviewed', 'offered'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} me-2"></i>
+                        <div>
+                            <strong>Shortlisted</strong>
+                        </div>
+                    </li>
+                    
+                    <li class="mb-3 d-flex">
+                        <i class="bi {% if application.status in ['interviewed', 'offered'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} me-2"></i>
+                        <div>
+                            <strong>Interviewed</strong>
+                        </div>
+                    </li>
+                    
+                    <li class="d-flex">
+                        <i class="bi {% if application.status == 'offered' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} me-2"></i>
+                        <div>
+                            <strong>Offer</strong>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if application.status not in ['offered', 'rejected', 'withdrawn'] %}
+                <form method="POST" action="{{ url_for('applicant.withdraw_application', application_id=application.id) }}" 
+                      onsubmit="return confirm('Are you sure you want to withdraw this application?');">
+                    {{ csrf_token() }}
+                    <button type="submit" class="btn btn-outline-danger w-100 mb-2">
+                        <i class="bi bi-x-circle"></i> Withdraw Application
+                    </button>
+                </form>
+                {% endif %}
+                
+                <a href="{{ url_for('applicant.dashboard') }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Create Assessment - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0"><i class="bi bi-plus-circle me-2"></i>Create Assessment</h1>
+                    <p class="text-muted mb-0">Create a new assessment for candidates</p>
+                </div>
+                <a href="{{ url_for('hr.assessments_list') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <form method="POST" class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="job_id" class="form-label">Job Posting <span class="text-danger">*</span></label>
+                        <select name="job_id" id="job_id" class="form-select" required>
+                            <option value="">Select a job...</option>
+                            {% for job in jobs %}
+                            <option value="{{ job.id }}">{{ job.title }} ({{ job.job_reference }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select the job this assessment is for.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Assessment Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" id="title" class="form-control" 
+                               placeholder="e.g., Technical Skills Assessment" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="3"
+                                  placeholder="Brief description of what this assessment evaluates"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="instructions" class="form-label">Instructions for Candidates</label>
+                        <textarea name="instructions" id="instructions" class="form-control" rows="4"
+                                  placeholder="Enter instructions that candidates will see before starting the assessment..."></textarea>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">Settings</h5>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="time_limit_minutes" class="form-label">Time Limit (minutes)</label>
+                            <input type="number" name="time_limit_minutes" id="time_limit_minutes" 
+                                   class="form-control" min="0" placeholder="Leave blank for no limit">
+                            <div class="form-text">0 or blank = no time limit</div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="pass_score" class="form-label">Pass Score (%)</label>
+                            <input type="number" name="pass_score" id="pass_score" class="form-control" 
+                                   min="0" max="100" value="50" step="0.1">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="max_attempts" class="form-label">Max Attempts</label>
+                            <input type="number" name="max_attempts" id="max_attempts" class="form-control" 
+                                   min="1" max="10" value="1">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="shuffle_questions" id="shuffle_questions" class="form-check-input">
+                                <label class="form-check-label" for="shuffle_questions">Shuffle Questions</label>
+                            </div>
+                            <div class="form-text">Randomize question order for each candidate</div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="show_results_immediately" id="show_results_immediately" 
+                                       class="form-check-input" checked>
+                                <label class="form-check-label" for="show_results_immediately">Show Results Immediately</label>
+                            </div>
+                            <div class="form-text">Show results right after submission</div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_mandatory" id="is_mandatory" class="form-check-input">
+                                <label class="form-check-label" for="is_mandatory">Mandatory Assessment</label>
+                            </div>
+                            <div class="form-text">Required before shortlisting</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('hr.assessments_list') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Create & Add Questions
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

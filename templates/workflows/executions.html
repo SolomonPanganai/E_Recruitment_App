@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow Executions - {{ rule.name }} - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-list-check"></i> Workflow Executions</h2>
+            <p class="text-muted mb-0">Rule: <strong>{{ rule.name }}</strong></p>
+        </div>
+        <a href="{{ url_for('hr.workflows') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Rules
+        </a>
+    </div>
+
+    <!-- Rule Summary -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Trigger:</strong><br>
+                    <span class="badge bg-info">{{ rule.trigger_type.replace('_', ' ').title() }}</span>
+                    {% if rule.trigger_status %}<br><small>Status: {{ rule.trigger_status }}</small>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <strong>Action:</strong><br>
+                    <span class="badge bg-primary">{{ rule.action_type.replace('_', ' ').title() }}</span>
+                    {% if rule.action_status %}<br><small>→ {{ rule.action_status }}</small>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <strong>Status:</strong><br>
+                    {% if rule.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <strong>Total Executions:</strong><br>
+                    {{ executions.total }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if executions.items %}
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Status</th>
+                        <th>Application</th>
+                        <th>Trigger Event</th>
+                        <th>Action Taken</th>
+                        <th>Executed At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for execution in executions.items %}
+                    <tr>
+                        <td>{{ execution.id }}</td>
+                        <td>
+                            {% if execution.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif execution.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% elif execution.status == 'skipped' %}
+                            <span class="badge bg-warning">Skipped</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ execution.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if execution.application %}
+                            <a href="{{ url_for('hr.view_application', application_id=execution.application_id) }}">
+                                #{{ execution.application_id }}
+                            </a>
+                            <br><small>{{ execution.application.applicant.first_name }} {{ execution.application.applicant.last_name }}</small>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ execution.trigger_event or '-' }}</td>
+                        <td>
+                            {{ execution.action_taken or '-' }}
+                            {% if execution.error_message %}
+                            <br><small class="text-danger">Error: {{ execution.error_message[:100] }}{% if execution.error_message|length > 100 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ execution.executed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if executions.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if executions.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.workflow_executions', rule_id=rule.id, page=executions.prev_num) }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in executions.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == executions.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('hr.workflow_executions', rule_id=rule.id, page=page_num) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if executions.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.workflow_executions', rule_id=rule.id, page=executions.next_num) }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No executions recorded for this rule yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Interview Feedback - {{ interview.application.applicant.full_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.applications') }}">Applications</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.application_detail', application_id=interview.application_id) }}">{{ interview.application.application_reference }}</a></li>
+            <li class="breadcrumb-item active">Interview Feedback</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-chat-square-text"></i> Record Interview Feedback</h4>
+            </div>
+            <div class="card-body">
+                <!-- Interview Info -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Candidate:</strong> {{ interview.application.applicant.full_name }}<br>
+                            <strong>Position:</strong> {{ interview.application.job.title }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Interview Date:</strong> {{ interview.scheduled_date.strftime('%d %B %Y') }}<br>
+                            <strong>Time:</strong> {{ interview.scheduled_date.strftime('%H:%M') }}<br>
+                            <strong>Type:</strong> {{ interview.interview_type|title }}
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST">
+                    {{ form.hidden_tag() if form.hidden_tag }}
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Overall Score (1-10)</label>
+                        <input type="number" name="score" class="form-control" min="1" max="10" required 
+                               value="{{ form.score.data or '' }}"
+                               placeholder="Rate the candidate from 1-10">
+                        <div class="form-text">1 = Poor, 5 = Average, 10 = Excellent</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Interview Status</label>
+                        <select name="status" class="form-select" required>
+                            <option value="">Select status...</option>
+                            <option value="completed" {% if form.status.data == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="no_show" {% if form.status.data == 'no_show' %}selected{% endif %}>Candidate No-Show</option>
+                            <option value="rescheduled" {% if form.status.data == 'rescheduled' %}selected{% endif %}>Rescheduled</option>
+                            <option value="cancelled" {% if form.status.data == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Feedback & Notes</label>
+                        <textarea name="feedback" class="form-control" rows="8" required
+                                  placeholder="Provide detailed feedback on the candidate's performance...">{{ form.feedback.data or '' }}</textarea>
+                        <div class="form-text">
+                            Consider: Technical skills, communication, problem-solving, cultural fit, motivation
+                        </div>
+                    </div>
+                    
+                    <!-- Feedback Guidelines -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h6><i class="bi bi-lightbulb"></i> Feedback Guidelines</h6>
+                            <ul class="mb-0 small">
+                                <li>Be specific and provide examples</li>
+                                <li>Focus on job-relevant competencies</li>
+                                <li>Note both strengths and areas for improvement</li>
+                                <li>Avoid bias - focus on skills and qualifications</li>
+                                <li>Include recommendation for next steps</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Submit Feedback
+                        </button>
+                        <a href="{{ url_for('hr.application_detail', application_id=interview.application_id) }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

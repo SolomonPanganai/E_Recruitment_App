@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.manage_users') }}">Manage Users</a></li>
+            <li class="breadcrumb-item active">Edit User</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-person-gear"></i> Edit User: {{ user.username }}</h4>
+            </div>
+            <div class="card-body">
+                <!-- User Info (Read-only) -->
+                <div class="alert alert-light mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Full Name:</strong> {{ user.full_name }}<br>
+                            <strong>Username:</strong> {{ user.username }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong> {{ user.email }}<br>
+                            <strong>Registered:</strong> {{ user.created_at.strftime('%d %b %Y') if user.created_at else 'N/A' }}
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST">
+                    {{ form.hidden_tag() if form.hidden_tag }}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">User Role</label>
+                        <select name="role" class="form-select" required>
+                            <option value="applicant" {% if user.role == 'applicant' %}selected{% endif %}>Applicant</option>
+                            <option value="hr_officer" {% if user.role == 'hr_officer' %}selected{% endif %}>HR Officer</option>
+                            <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>Manager</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                        </select>
+                        <div class="form-text">
+                            <strong>Applicant:</strong> Can apply for jobs<br>
+                            <strong>HR Officer:</strong> Can manage applications<br>
+                            <strong>Manager:</strong> Can create jobs and make offers<br>
+                            <strong>Admin:</strong> Full system access
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                                   {% if user.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Account Active
+                            </label>
+                        </div>
+                        <div class="form-text">Inactive accounts cannot log in to the system.</div>
+                    </div>
+                    
+                    {% if user.id == current_user.id %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Warning:</strong> You are editing your own account. Be careful when changing your role or deactivating your account.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Save Changes
+                        </button>
+                        <a href="{{ url_for('hr.manage_users') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

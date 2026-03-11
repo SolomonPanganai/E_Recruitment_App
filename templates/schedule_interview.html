@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Interview - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('hr.application_detail', application_id=application.id) }}">{{ application.application_reference }}</a></li>
+                <li class="breadcrumb-item active">Schedule Interview</li>
+            </ol>
+        </nav>
+
+        <!-- Applicant Summary -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            {{ application.applicant.first_name[0] }}{{ application.applicant.last_name[0] }}
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-1">{{ application.applicant.full_name }}</h5>
+                        <p class="mb-0 text-muted">{{ application.job.title }} - {{ application.application_reference }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Form -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Schedule Interview</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.interview_type.label(class="form-label") }}
+                            {{ form.interview_type(class="form-select") }}
+                            {% for error in form.interview_type.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.scheduled_date.label(class="form-label") }}
+                            {{ form.scheduled_date(class="form-control", type="datetime-local") }}
+                            {% for error in form.scheduled_date.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.location.label(class="form-label") }}
+                        {{ form.location(class="form-control", placeholder="e.g. Conference Room A, Building 2 OR Teams Meeting Link") }}
+                        <small class="text-muted">For virtual interviews, include the meeting link</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.interviewers.label(class="form-label") }}
+                        {{ form.interviewers(class="form-control", placeholder="e.g. John Smith (HR), Jane Doe (Manager)") }}
+                        <small class="text-muted">Names of panel members</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control", rows="3", placeholder="Any special instructions or preparation required...") }}
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="sendNotification" name="send_notification" checked>
+                        <label class="form-check-label" for="sendNotification">
+                            Send email notification to applicant
+                        </label>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('hr.application_detail', application_id=application.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Previous Interviews -->
+        {% if application.interviews %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Previous Interviews</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for interview in application.interviews %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ interview.interview_type|title }}</strong><br>
+                            <small class="text-muted">{{ interview.scheduled_date.strftime('%d %b %Y %H:%M') }}</small>
+                        </div>
+                        <span class="badge bg-{% if interview.status == 'completed' %}success{% elif interview.status == 'scheduled' %}primary{% else %}secondary{% endif %}">
+                            {{ interview.status|title }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if current_user.profile_picture %}
+                <img src="{{ url_for('auth.profile_picture', filename=current_user.profile_picture) }}" 
+                     alt="Profile Picture" 
+                     class="rounded-circle mb-3"
+                     style="width: 150px; height: 150px; object-fit: cover; border: 4px solid #dee2e6;">
+                {% else %}
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                     style="width: 150px; height: 150px;">
+                    <span class="text-white" style="font-size: 4rem;">{{ current_user.first_name[0] }}{{ current_user.last_name[0] }}</span>
+                </div>
+                {% endif %}
+                <h4 class="mt-2">{{ current_user.full_name }}</h4>
+                <p class="text-muted">{{ current_user.email }}</p>
+                <span class="badge bg-{% if current_user.role == 'admin' %}danger{% elif current_user.role == 'manager' %}info{% elif current_user.role == 'hr_officer' %}primary{% else %}secondary{% endif %}">
+                    {{ current_user.role|replace('_', ' ')|title }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Account Info</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Username:</strong> {{ current_user.username }}</p>
+                <p class="mb-2"><strong>Member since:</strong> {{ current_user.created_at.strftime('%d %b %Y') }}</p>
+                {% if current_user.last_login %}
+                <p class="mb-0"><strong>Last login:</strong> {{ current_user.last_login.strftime('%d %b %Y %H:%M') }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-key"></i> Change Password
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil"></i> Update Profile</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- Profile Picture Upload -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="bi bi-camera"></i> Profile Picture</label>
+                        <div class="d-flex align-items-center gap-4">
+                            <div>
+                                {% if current_user.profile_picture %}
+                                <img id="preview" src="{{ url_for('auth.profile_picture', filename=current_user.profile_picture) }}" 
+                                     alt="Current Picture" 
+                                     class="rounded-circle"
+                                     style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #dee2e6;">
+                                {% else %}
+                                <div id="defaultAvatar" class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 120px; height: 120px;">
+                                    <i class="bi bi-person text-white" style="font-size: 3rem;"></i>
+                                </div>
+                                <img id="preview" src="" alt="Preview" class="rounded-circle" 
+                                     style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #28a745; display: none;">
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                {{ form.profile_picture(class="form-control", id="pictureInput", accept="image/jpeg,image/png,image/gif") }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle"></i> Allowed: JPG, PNG, GIF (Max 5MB)
+                                </small>
+                                {% for error in form.profile_picture.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.first_name.label(class="form-label") }}
+                            {{ form.first_name(class="form-control") }}
+                            {% for error in form.first_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.last_name.label(class="form-label") }}
+                            {{ form.last_name(class="form-control") }}
+                            {% for error in form.last_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control") }}
+                        {% for error in form.phone.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr>
+                    <h6>Employment Equity Information (Optional)</h6>
+                    <p class="text-muted small">This information is used for EE reporting purposes only.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.gender.label(class="form-label") }}
+                            {{ form.gender(class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.race.label(class="form-label") }}
+                            {{ form.race(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ form.disability_status(class="form-check-input") }}
+                        {{ form.disability_status.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pictureInput = document.getElementById('pictureInput');
+    const preview = document.getElementById('preview');
+    const defaultAvatar = document.getElementById('defaultAvatar');
+    
+    if (pictureInput) {
+        pictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPG, PNG, or GIF)');
+                pictureInput.value = '';
+                return;
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size must be less than 5MB');
+                pictureInput.value = '';
+                return;
+            }
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                if (defaultAvatar) {
+                    defaultAvatar.style.display = 'none';
+                }
+                if (preview) {
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    preview.style.border = '3px solid #28a745';
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+});
+</script>
+{% endblock %}

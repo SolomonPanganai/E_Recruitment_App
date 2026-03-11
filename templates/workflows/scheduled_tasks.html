@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Scheduled Tasks - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-clock"></i> Scheduled Tasks</h2>
+        <div>
+            <a href="{{ url_for('hr.workflows') }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-diagram-3"></i> Workflow Rules
+            </a>
+            <a href="{{ url_for('hr.create_scheduled_task') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Create Task
+            </a>
+        </div>
+    </div>
+
+    {% if tasks %}
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Status</th>
+                        <th>Task Name</th>
+                        <th>Type</th>
+                        <th>Schedule</th>
+                        <th>Last Run</th>
+                        <th>Next Run</th>
+                        <th>Run Count</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>
+                            {% if task.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ task.name }}</strong>
+                            {% if task.description %}
+                            <br><small class="text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ task.task_type.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ task.schedule_type.title() }}</span>
+                            {% if task.scheduled_time %}
+                            <br><small>Time: {{ task.scheduled_time.strftime('%H:%M') }}</small>
+                            {% endif %}
+                            {% if task.schedule_type == 'once' and task.scheduled_date %}
+                            <br><small>Date: {{ task.scheduled_date.strftime('%Y-%m-%d') }}</small>
+                            {% elif task.schedule_type == 'weekly' and task.day_of_week is not none %}
+                            <br><small>{{ ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][task.day_of_week] }}</small>
+                            {% elif task.schedule_type == 'monthly' and task.day_of_month %}
+                            <br><small>Day {{ task.day_of_month }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.last_run %}
+                            {{ task.last_run.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                            <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.next_run %}
+                            {{ task.next_run.strftime('%Y-%m-%d %H:%M') }}
+                            {% if task.next_run < now %}
+                            <br><span class="badge bg-warning">Overdue</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">Not scheduled</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.run_count }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('hr.edit_scheduled_task', task_id=task.id) }}" 
+                                   class="btn btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ url_for('hr.toggle_scheduled_task', task_id=task.id) }}" 
+                                      class="d-inline">
+                                    <button type="submit" class="btn btn-outline-warning" 
+                                            title="{{ 'Deactivate' if task.is_active else 'Activate' }}">
+                                        <i class="bi bi-{{ 'pause' if task.is_active else 'play' }}"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('hr.delete_scheduled_task', task_id=task.id) }}" 
+                                      class="d-inline"
+                                      onsubmit="return confirm('Delete this scheduled task? This cannot be undone.')">
+                                    <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No scheduled tasks defined yet. 
+        <a href="{{ url_for('hr.create_scheduled_task') }}">Create your first task</a> to automate recurring activities.
+    </div>
+    {% endif %}
+
+    <!-- Help Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <i class="bi bi-question-circle"></i> About Scheduled Tasks
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Task Types</h6>
+                    <ul class="small">
+                        <li><strong>Job Closing Reminder:</strong> Notify when jobs are about to close</li>
+                        <li><strong>Interview Reminder:</strong> Send reminders before interviews</li>
+                        <li><strong>Application Follow-up:</strong> Remind to review applications</li>
+                        <li><strong>Document Reminder:</strong> Prompt applicants for missing documents</li>
+                        <li><strong>Report Generation:</strong> Generate periodic reports</li>
+                        <li><strong>Cleanup:</strong> Remove old data and logs</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Schedule Types</h6>
+                    <ul class="small">
+                        <li><strong>Once:</strong> Run one time on a specific date</li>
+                        <li><strong>Daily:</strong> Run every day at specified time</li>
+                        <li><strong>Weekly:</strong> Run on specific day of week</li>
+                        <li><strong>Monthly:</strong> Run on specific day of month</li>
+                    </ul>
+                    <p class="small text-muted mt-3">
+                        <i class="bi bi-info-circle"></i> Note: Tasks are processed by a background scheduler. 
+                        Admins can manually trigger task processing from the Workflow Rules page.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

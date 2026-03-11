@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Assessments - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-clipboard-check me-2"></i>Assessments</h1>
+            <p class="text-muted mb-0">Manage candidate assessments and tests</p>
+        </div>
+        <a href="{{ url_for('hr.create_assessment') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Create Assessment
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Job</label>
+                    <select name="job_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Jobs</option>
+                        {% for job in jobs %}
+                        <option value="{{ job.id }}" {% if selected_job == job.id %}selected{% endif %}>
+                            {{ job.title }} ({{ job.job_reference }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assessments Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if assessments.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Job</th>
+                            <th>Questions</th>
+                            <th>Time Limit</th>
+                            <th>Pass Score</th>
+                            <th>Attempts</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assessment in assessments.items %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('hr.assessment_detail', assessment_id=assessment.id) }}">
+                                    <strong>{{ assessment.title }}</strong>
+                                </a>
+                                {% if assessment.is_mandatory %}
+                                <span class="badge bg-warning ms-1">Mandatory</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('hr.job_detail', job_id=assessment.job_id) }}">
+                                    {{ assessment.job.title }}
+                                </a>
+                            </td>
+                            <td>{{ assessment.total_questions }}</td>
+                            <td>
+                                {% if assessment.time_limit_minutes %}
+                                {{ assessment.time_limit_minutes }} min
+                                {% else %}
+                                <span class="text-muted">No limit</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ assessment.pass_score }}%</td>
+                            <td>{{ assessment.candidate_assessments.count() }}</td>
+                            <td>
+                                {% if assessment.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('hr.assessment_detail', assessment_id=assessment.id) }}" 
+                                       class="btn btn-outline-primary" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('hr.manage_questions', assessment_id=assessment.id) }}" 
+                                       class="btn btn-outline-secondary" title="Questions">
+                                        <i class="bi bi-list-ol"></i>
+                                    </a>
+                                    <a href="{{ url_for('hr.edit_assessment', assessment_id=assessment.id) }}" 
+                                       class="btn btn-outline-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if assessments.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not assessments.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('hr.assessments_list', page=assessments.prev_num, job_id=selected_job) }}">Previous</a>
+                    </li>
+                    {% for page in assessments.iter_pages() %}
+                        {% if page %}
+                        <li class="page-item {% if page == assessments.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('hr.assessments_list', page=page, job_id=selected_job) }}">{{ page }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not assessments.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('hr.assessments_list', page=assessments.next_num, job_id=selected_job) }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-clipboard-x display-1 text-muted"></i>
+                <h4 class="mt-3">No assessments found</h4>
+                <p class="text-muted">Create your first assessment to evaluate candidates.</p>
+                <a href="{{ url_for('hr.create_assessment') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Create Assessment
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

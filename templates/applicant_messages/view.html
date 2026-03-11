@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Message: {{ message.subject }} - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('applicant.applicant_messages') }}">Messages</a></li>
+                    <li class="breadcrumb-item active">View</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ message.subject }}</h2>
+        </div>
+        <div>
+            {% if message.sender_id != current_user.id %}
+            <a href="{{ url_for('applicant.reply_message', message_id=message.id) }}" class="btn btn-primary">
+                <i class="bi bi-reply me-1"></i>Reply
+            </a>
+            {% endif %}
+            <form action="{{ url_for('applicant.delete_applicant_message', message_id=message.id) }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this message?')">
+                    <i class="bi bi-trash me-1"></i>Delete
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>From:</strong> {{ message.sender.full_name }}<br>
+                    <strong>To:</strong> {{ message.recipient.full_name }}
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-{{ 'primary' if message.message_type == 'general' else 'info' }}">
+                        {{ message.message_type|replace('_', ' ')|title }}
+                    </span>
+                    <br>
+                    <small class="text-muted">{{ message.created_at.strftime('%d %B %Y at %H:%M') }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if message.application %}
+            <div class="alert alert-light mb-3">
+                <strong>Related Application:</strong> 
+                <a href="{{ url_for('applicant.application_detail', application_id=message.application_id) }}">
+                    {{ message.application.application_reference }} - {{ message.application.job.title }}
+                </a>
+            </div>
+            {% endif %}
+
+            <div class="message-body" style="white-space: pre-wrap;">{{ message.body }}</div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ url_for('applicant.applicant_messages') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Messages
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Document Library - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-folder2-open"></i> Document Library</h2>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Document Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="cv" {% if doc_type == 'cv' %}selected{% endif %}>CV/Resume</option>
+                    <option value="id" {% if doc_type == 'id' %}selected{% endif %}>ID Document</option>
+                    <option value="qualification" {% if doc_type == 'qualification' %}selected{% endif %}>Qualifications</option>
+                    <option value="reference" {% if doc_type == 'reference' %}selected{% endif %}>References</option>
+                    <option value="offer_letter" {% if doc_type == 'offer_letter' %}selected{% endif %}>Offer Letters</option>
+                    <option value="other" {% if doc_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search by filename..." value="{{ search }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Documents Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Documents ({{ documents.total }})</h5>
+    </div>
+    <div class="card-body">
+        {% if documents.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Application</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents.items %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-file-earmark-{% if doc.mime_type and 'pdf' in doc.mime_type %}pdf text-danger{% elif doc.mime_type and 'word' in doc.mime_type %}word text-primary{% elif doc.mime_type and 'image' in doc.mime_type %}image text-success{% else %}text{% endif %} me-2"></i>
+                            {{ doc.file_name }}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ doc.document_type|replace('_', ' ')|title }}</span>
+                        </td>
+                        <td>
+                            {% if doc.application %}
+                            <a href="{{ url_for('hr.application_detail', application_id=doc.application_id) }}">
+                                {{ doc.application.application_reference }}
+                            </a>
+                            <br>
+                            <small class="text-muted">{{ doc.application.applicant.full_name }}</small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if doc.file_size %}
+                            {{ (doc.file_size / 1024)|round(1) }} KB
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ doc.uploaded_at.strftime('%d %b %Y') }}
+                            <br>
+                            <small class="text-muted">{{ doc.uploaded_at.strftime('%H:%M') }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                {% if doc.mime_type and ('pdf' in doc.mime_type or 'image' in doc.mime_type) %}
+                                <a href="{{ url_for('hr.preview_document', doc_id=doc.id) }}" 
+                                   class="btn btn-sm btn-outline-info" target="_blank" title="Preview">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('hr.download_document', doc_id=doc.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Download">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if documents.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if documents.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('hr.document_library', page=documents.prev_num, type=doc_type, search=search) }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for p in documents.iter_pages() %}
+                    {% if p %}
+                    <li class="page-item {% if p == documents.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('hr.document_library', page=p, type=doc_type, search=search) }}">{{ p }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if documents.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('hr.document_library', page=documents.next_num, type=doc_type, search=search) }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-folder2 text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-3">No documents found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

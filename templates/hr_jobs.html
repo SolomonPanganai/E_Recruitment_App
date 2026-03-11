@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Jobs - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-briefcase"></i> Job Postings</h2>
+        <p class="text-muted mb-0">{{ pagination.total }} jobs found</p>
+    </div>
+    <a href="{{ url_for('hr.create_job') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Create New Job
+    </a>
+</div>
+
+<!-- Advanced Search & Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-funnel me-1"></i>Search & Filter</h6>
+    </div>
+    <div class="card-body">
+        <form method="GET">
+            <!-- Primary Search Bar -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search by job title, reference, or description..." 
+                               value="{{ search }}">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                        <a href="{{ url_for('hr.jobs') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="pending_approval" {% if status_filter == 'pending_approval' %}selected{% endif %}>Pending Approval</option>
+                        <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
+                        <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Department</label>
+                    <select name="department" class="form-select">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Location</label>
+                    <select name="location" class="form-select">
+                        <option value="">All Locations</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Sort By</label>
+                    <select name="sort" class="form-select">
+                        <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
+                        <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
+                        <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Title (A-Z)</option>
+                        <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Title (Z-A)</option>
+                        <option value="apps_desc" {% if sort_by == 'apps_desc' %}selected{% endif %}>Most Applications</option>
+                        <option value="closing_asc" {% if sort_by == 'closing_asc' %}selected{% endif %}>Closing Soon</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Jobs Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Reference</th>
+                    <th>Title</th>
+                    <th>Department / Location</th>
+                    <th>Closing Date</th>
+                    <th>Applications</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td><code>{{ job.job_reference }}</code></td>
+                    <td>
+                        <a href="{{ url_for('hr.job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                    </td>
+                    <td>
+                        {{ job.department }}<br>
+                        <small class="text-muted">{{ job.location }}</small>
+                    </td>
+                    <td>
+                        {% if job.closing_date < now %}
+                        <span class="text-danger">{{ job.closing_date.strftime('%d %b %Y') }}</span>
+                        <br><small class="text-danger">Expired</small>
+                        {% elif job.days_until_closing <= 7 %}
+                        <span class="text-warning">{{ job.closing_date.strftime('%d %b %Y') }}</span>
+                        <br><small class="text-warning">{{ job.days_until_closing }}d left</small>
+                        {% else %}
+                        {{ job.closing_date.strftime('%d %b %Y') }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">{{ job.applications_count }}</span>
+                    </td>
+                    <td>
+                        {% if job.status == 'draft' %}
+                        <span class="badge bg-secondary">Draft</span>
+                        {% elif job.status == 'pending_approval' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif job.status == 'published' %}
+                        <span class="badge bg-success">Published</span>
+                        {% elif job.status == 'closed' %}
+                        <span class="badge bg-dark">Closed</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('hr.job_detail', job_id=job.id) }}" class="btn btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('hr.edit_job', job_id=job.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        No job postings found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.jobs', page=pagination.prev_num, search=search, status=status_filter, department=department_filter, location=location_filter, sort=sort_by) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+        {% if page %}
+        <li class="page-item {% if page == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('hr.jobs', page=page, search=search, status=status_filter, department=department_filter, location=location_filter, sort=sort_by) }}">{{ page }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('hr.jobs', page=pagination.next_num, search=search, status=status_filter, department=department_filter, location=location_filter, sort=sort_by) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

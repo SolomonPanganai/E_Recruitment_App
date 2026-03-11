@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}E-Recruitment Portal - Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-white mb-4 animate-fade-in-up">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="fw-bold mb-2">Find Your Next Career Opportunity</h1>
+            <p class="lead mb-3">Join our team and make a difference in your community. Browse vacancies and apply online.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('main.jobs') }}" class="btn btn-light">
+                    <i class="bi bi-search me-1"></i>Browse Jobs
+                </a>
+                {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light">
+                    <i class="bi bi-person-plus me-1"></i>Register
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-4 text-center d-none d-lg-block">
+            <i class="bi bi-people" style="font-size: 6rem; opacity: 0.2;"></i>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Stats -->
+<section class="mb-4">
+    <div class="row g-3 text-center">
+        <div class="col-md-4">
+            <div class="card stat-card border-primary h-100">
+                <div class="card-body py-3">
+                    <i class="bi bi-briefcase text-primary" style="font-size: 2rem;"></i>
+                    <h4 class="mb-0 mt-2">{{ featured_jobs|length }}</h4>
+                    <p class="mb-0 small text-muted">Open Positions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card border-success h-100">
+                <div class="card-body py-3">
+                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                    <h4 class="mb-0 mt-2">Easy</h4>
+                    <p class="mb-0 small text-muted">Online Application</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card border-info h-100">
+                <div class="card-body py-3">
+                    <i class="bi bi-clock-history text-info" style="font-size: 2rem;"></i>
+                    <h4 class="mb-0 mt-2">Real-time</h4>
+                    <p class="mb-0 small text-muted">Application Tracking</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Jobs -->
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-star-fill text-warning me-2"></i>Featured Vacancies</h2>
+        <a href="{{ url_for('main.jobs') }}" class="btn btn-outline-primary">
+            View All Jobs <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+    
+    {% if featured_jobs %}
+    <div class="row g-4">
+        {% for job in featured_jobs %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 job-card">
+                <div class="card-body">
+                    <span class="badge bg-primary mb-3">{{ job.department }}</span>
+                    <h5 class="card-title">{{ job.title }}</h5>
+                    <p class="card-text text-muted small mb-3">
+                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ job.location }}<br>
+                        <i class="bi bi-calendar-event text-primary me-1"></i> Closes: {{ job.closing_date.strftime('%d %b %Y') }}
+                    </p>
+                    <p class="card-text text-secondary">{{ job.job_purpose[:100] }}{% if job.job_purpose|length > 100 %}...{% endif %}</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="btn btn-primary w-100">
+                        View Details <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+        <div>No vacancies currently available. Please check back later or register to receive job alerts.</div>
+    </div>
+    {% endif %}
+</section>
+
+<!-- How It Works -->
+<section class="mb-5">
+    <h2 class="text-center mb-2">How To Apply</h2>
+    <p class="text-center text-muted mb-5">Follow these simple steps to submit your application</p>
+    <div class="row g-4">
+        <div class="col-md-3 text-center how-it-works-step">
+            <div class="step-icon">
+                <i class="bi bi-person-plus text-primary" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="fw-bold">1. Register</h5>
+            <p class="text-muted small mb-0">Create your account and complete your profile</p>
+        </div>
+        <div class="col-md-3 text-center how-it-works-step">
+            <div class="step-icon">
+                <i class="bi bi-search text-primary" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="fw-bold">2. Find Jobs</h5>
+            <p class="text-muted small mb-0">Browse and search available vacancies</p>
+        </div>
+        <div class="col-md-3 text-center how-it-works-step">
+            <div class="step-icon">
+                <i class="bi bi-file-earmark-arrow-up text-primary" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="fw-bold">3. Apply</h5>
+            <p class="text-muted small mb-0">Submit your application with supporting documents</p>
+        </div>
+        <div class="col-md-3 text-center how-it-works-step">
+            <div class="step-icon">
+                <i class="bi bi-graph-up-arrow text-primary" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="fw-bold">4. Track</h5>
+            <p class="text-muted small mb-0">Monitor your application status online</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

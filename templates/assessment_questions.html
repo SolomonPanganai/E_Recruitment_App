@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Questions - {{ assessment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.assessments_list') }}">Assessments</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.assessment_detail', assessment_id=assessment.id) }}">{{ assessment.title }}</a></li>
+                    <li class="breadcrumb-item active">Questions</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0"><i class="bi bi-list-ol me-2"></i>Manage Questions</h1>
+            <p class="text-muted mb-0">{{ assessment.title }} - {{ assessment.job.title }}</p>
+        </div>
+        <a href="{{ url_for('hr.assessment_detail', assessment_id=assessment.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Assessment
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Questions List -->
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Questions ({{ questions|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if questions %}
+                    <div class="list-group list-group-flush" id="questionsList">
+                        {% for question in questions %}
+                        <div class="list-group-item" data-question-id="{{ question.id }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                                        <span class="badge bg-info me-2">{{ question.question_type.replace('_', ' ').title() }}</span>
+                                        <span class="badge bg-primary">{{ question.points }} pts</span>
+                                    </div>
+                                    <p class="mb-2">{{ question.question_text }}</p>
+                                    
+                                    {% if question.question_type in ['multiple_choice', 'true_false', 'multiple_select'] %}
+                                    <div class="ms-3">
+                                        {% for option in question.options.order_by('order') %}
+                                        <div class="small {% if option.is_correct %}text-success fw-bold{% else %}text-muted{% endif %}">
+                                            {% if option.is_correct %}<i class="bi bi-check-circle-fill me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                                            {{ option.option_text }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% elif question.question_type == 'text' and question.expected_answer %}
+                                    <div class="ms-3 small text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>Expected: {{ question.expected_answer[:100] }}...
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="ms-3">
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this question?');">
+                                        <input type="hidden" name="action" value="delete_question">
+                                        <input type="hidden" name="question_id" value="{{ question.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-question-circle display-4 text-muted"></i>
+                        <p class="mt-3 text-muted">No questions yet. Add your first question!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Question Form -->
+        <div class="col-lg-5">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add Question</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="addQuestionForm">
+                        <input type="hidden" name="action" value="add_question">
+                        
+                        <div class="mb-3">
+                            <label for="question_type" class="form-label">Question Type</label>
+                            <select name="question_type" id="question_type" class="form-select" required>
+                                <option value="multiple_choice">Multiple Choice (Single Answer)</option>
+                                <option value="multiple_select">Multiple Choice (Multiple Answers)</option>
+                                <option value="true_false">True/False</option>
+                                <option value="text">Text (Manual Grading)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="question_text" class="form-label">Question Text</label>
+                            <textarea name="question_text" id="question_text" class="form-control" rows="3" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="points" class="form-label">Points</label>
+                            <input type="number" name="points" id="points" class="form-control" 
+                                   min="0.1" step="0.1" value="1" required>
+                        </div>
+
+                        <!-- Multiple Choice Options -->
+                        <div id="optionsSection">
+                            <label class="form-label">Options</label>
+                            <div id="optionsContainer">
+                                <div class="input-group mb-2 option-row">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" name="correct[]" value="0" class="form-check-input mt-0">
+                                    </div>
+                                    <input type="text" name="options[]" class="form-control" placeholder="Option 1">
+                                    <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                                <div class="input-group mb-2 option-row">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" name="correct[]" value="1" class="form-check-input mt-0">
+                                    </div>
+                                    <input type="text" name="options[]" class="form-control" placeholder="Option 2">
+                                    <button type="button" class="btn btn-outline-danger remove-option" disabled>
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addOption">
+                                <i class="bi bi-plus me-1"></i>Add Option
+                            </button>
+                            <div class="form-text mt-2">Check the correct answer(s).</div>
+                        </div>
+
+                        <!-- True/False Section -->
+                        <div id="trueFalseSection" style="display: none;">
+                            <label class="form-label">Correct Answer</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="correct_tf" id="tf_true" value="true" checked>
+                                <label class="btn btn-outline-success" for="tf_true">True</label>
+                                <input type="radio" class="btn-check" name="correct_tf" id="tf_false" value="false">
+                                <label class="btn btn-outline-danger" for="tf_false">False</label>
+                            </div>
+                        </div>
+
+                        <!-- Text Answer Section -->
+                        <div id="textSection" style="display: none;">
+                            <label for="expected_answer" class="form-label">Expected Answer (for reference)</label>
+                            <textarea name="expected_answer" id="expected_answer" class="form-control" rows="2"
+                                      placeholder="Keywords or expected answer for manual grading"></textarea>
+                            <div class="form-text">Text answers require manual grading.</div>
+                        </div>
+
+                        <hr class="my-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg me-1"></i>Add Question
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionType = document.getElementById('question_type');
+    const optionsSection = document.getElementById('optionsSection');
+    const trueFalseSection = document.getElementById('trueFalseSection');
+    const textSection = document.getElementById('textSection');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionBtn = document.getElementById('addOption');
+    
+    let optionCount = 2;
+    
+    // Toggle sections based on question type
+    questionType.addEventListener('change', function() {
+        const type = this.value;
+        
+        optionsSection.style.display = 'none';
+        trueFalseSection.style.display = 'none';
+        textSection.style.display = 'none';
+        
+        if (type === 'multiple_choice' || type === 'multiple_select') {
+            optionsSection.style.display = 'block';
+            // Change checkbox behavior for single vs multiple
+            const checkboxes = optionsSection.querySelectorAll('input[type="checkbox"]');
+            if (type === 'multiple_choice') {
+                checkboxes.forEach(cb => cb.type = 'radio');
+            } else {
+                checkboxes.forEach(cb => cb.type = 'checkbox');
+            }
+        } else if (type === 'true_false') {
+            trueFalseSection.style.display = 'block';
+        } else if (type === 'text') {
+            textSection.style.display = 'block';
+        }
+    });
+    
+    // Add option
+    addOptionBtn.addEventListener('click', function() {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2 option-row';
+        div.innerHTML = `
+            <div class="input-group-text">
+                <input type="${questionType.value === 'multiple_choice' ? 'radio' : 'checkbox'}" 
+                       name="correct[]" value="${optionCount}" class="form-check-input mt-0">
+            </div>
+            <input type="text" name="options[]" class="form-control" placeholder="Option ${optionCount + 1}">
+            <button type="button" class="btn btn-outline-danger remove-option">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        optionsContainer.appendChild(div);
+        optionCount++;
+        updateRemoveButtons();
+    });
+    
+    // Remove option
+    optionsContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-option')) {
+            const row = e.target.closest('.option-row');
+            row.remove();
+            updateRemoveButtons();
+            reindexOptions();
+        }
+    });
+    
+    function updateRemoveButtons() {
+        const rows = optionsContainer.querySelectorAll('.option-row');
+        rows.forEach((row, index) => {
+            const btn = row.querySelector('.remove-option');
+            btn.disabled = rows.length <= 2;
+        });
+    }
+    
+    function reindexOptions() {
+        const inputs = optionsContainer.querySelectorAll('input[name="correct[]"]');
+        inputs.forEach((input, index) => {
+            input.value = index;
+        });
+        optionCount = inputs.length;
+    }
+});
+</script>
+{% endblock %}

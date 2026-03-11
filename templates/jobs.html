@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Job Vacancies - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Filters Sidebar -->
+    <div class="col-lg-3 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-funnel"></i> Filter Jobs
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('main.jobs') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Keyword</label>
+                        <input type="text" name="keyword" class="form-control" 
+                               value="{{ keyword }}" placeholder="Job title, skills...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <select name="department" class="form-select">
+                            {% for value, label in form.department.choices %}
+                            <option value="{{ value }}" {% if value == selected_department %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <select name="location" class="form-select">
+                            {% for value, label in form.location.choices %}
+                            <option value="{{ value }}" {% if value == selected_location %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sort By</label>
+                        <select name="sort" class="form-select">
+                            <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+                            <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title (A-Z)</option>
+                            <option value="closing" {% if sort_by == 'closing' %}selected{% endif %}>Closing Soon</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <a href="{{ url_for('main.jobs') }}" class="btn btn-outline-secondary w-100 mt-2">
+                        Clear Filters
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Listings -->
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-briefcase"></i> Job Vacancies</h2>
+            <span class="text-muted">{{ total_jobs }} jobs found</span>
+        </div>
+
+        {% if jobs %}
+            {% for job in jobs %}
+            <div class="card mb-3 job-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-start">
+                                <div>
+                                    <span class="badge bg-primary">{{ job.department }}</span>
+                                    {% if job.ee_target_category %}
+                                    <span class="badge bg-info">EE Position</span>
+                                    {% endif %}
+                                    <h5 class="mt-2 mb-1">
+                                        <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="text-decoration-none">
+                                            {{ job.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted small mb-2">
+                                        <i class="bi bi-hash"></i> {{ job.job_reference }} |
+                                        <i class="bi bi-geo-alt"></i> {{ job.location }}
+                                    </p>
+                                    <p class="mb-0">{{ job.job_purpose[:200] }}{% if job.job_purpose|length > 200 %}...{% endif %}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            {% if job.salary_range %}
+                            <p class="mb-1"><strong>{{ job.salary_range }}</strong></p>
+                            {% endif %}
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-calendar-event"></i> Closes: {{ job.closing_date.strftime('%d %b %Y') }}
+                            </p>
+                            <p class="mb-2">
+                                {% if job.days_until_closing <= 3 %}
+                                <span class="badge bg-danger">{{ job.days_until_closing }} days left</span>
+                                {% elif job.days_until_closing <= 7 %}
+                                <span class="badge bg-warning">{{ job.days_until_closing }} days left</span>
+                                {% else %}
+                                <span class="badge bg-success">{{ job.days_until_closing }} days left</span>
+                                {% endif %}
+                            </p>
+                            <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="btn btn-outline-primary">
+                                View Details <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="Job listings pagination">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.jobs', page=pagination.prev_num, keyword=keyword, department=selected_department, location=selected_location, sort=sort_by) }}">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.jobs', page=page_num, keyword=keyword, department=selected_department, location=selected_location, sort=sort_by) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.jobs', page=pagination.next_num, keyword=keyword, department=selected_department, location=selected_location, sort=sort_by) }}">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No jobs found matching your criteria. Try adjusting your filters.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

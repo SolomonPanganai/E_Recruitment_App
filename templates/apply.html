@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% block title %}Apply - {{ job.title }} - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-send"></i> Apply for Position</h4>
+            </div>
+            <div class="card-body">
+                <!-- Job Summary -->
+                <div class="alert alert-info">
+                    <h5>{{ job.title }}</h5>
+                    <p class="mb-1"><i class="bi bi-hash"></i> {{ job.job_reference }}</p>
+                    <p class="mb-1"><i class="bi bi-building"></i> {{ job.department }}</p>
+                    <p class="mb-0"><i class="bi bi-geo-alt"></i> {{ job.location }}</p>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- Cover Letter -->
+                    <div class="mb-4">
+                        {{ form.cover_letter.label(class="form-label") }}
+                        {{ form.cover_letter(class="form-control", rows=6, placeholder="Tell us why you're the right fit for this position...") }}
+                        <small class="text-muted">Optional but recommended. Highlight your relevant experience and motivation.</small>
+                        {% for error in form.cover_letter.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr>
+                    <h5 class="mb-3"><i class="bi bi-paperclip"></i> Required Documents</h5>
+                    
+                    <!-- CV Upload -->
+                    <div class="mb-3">
+                        {{ form.cv_file.label(class="form-label") }} <span class="text-danger">*</span>
+                        {{ form.cv_file(class="form-control") }}
+                        <small class="text-muted">Accepted formats: PDF, DOC, DOCX (Max 16MB)</small>
+                        {% for error in form.cv_file.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- ID Document -->
+                    <div class="mb-3">
+                        {{ form.id_document.label(class="form-label") }}
+                        {{ form.id_document(class="form-control") }}
+                        <small class="text-muted">Accepted formats: PDF, JPG, PNG (Max 16MB)</small>
+                        {% for error in form.id_document.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Qualifications -->
+                    <div class="mb-4">
+                        {{ form.qualifications.label(class="form-label") }}
+                        {{ form.qualifications(class="form-control") }}
+                        <small class="text-muted">Accepted format: PDF (Max 16MB)</small>
+                        {% for error in form.qualifications.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Declaration -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.confirm_accuracy(class="form-check-input") }}
+                            {{ form.confirm_accuracy.label(class="form-check-label") }}
+                        </div>
+                        {% for error in form.confirm_accuracy.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                        <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

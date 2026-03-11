@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Committee Decisions - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Committee Decisions</h1>
+            <p class="text-muted">View voting results and committee decisions</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Committee Type</label>
+                    <select class="form-select" id="committeTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="shortlisting">Shortlisting</option>
+                        <option value="interviewing">Interviewing</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Decision Status</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="needs_review">Needs Review</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">Filter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decisions List -->
+    <div id="decisionsList">
+        <!-- Loaded dynamically -->
+    </div>
+</div>
+
+<!-- Decision Details Modal -->
+<div class="modal fade" id="decisionDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Committee Decision Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="decisionDetailsContent">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadDecisions();
+});
+
+function loadDecisions() {
+    const type = document.getElementById('committeTypeFilter')?.value || '';
+    const status = document.getElementById('statusFilter')?.value || '';
+    
+    let url = '/api/committee/decisions';
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    if (status) params.append('status', status);
+    if (params.toString()) url += '?' + params.toString();
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('decisionsList');
+            
+            if (!data.decisions || data.decisions.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No committee decisions found</div>';
+                return;
+            }
+            
+            container.innerHTML = data.decisions.map(decision => {
+                const decisionColor = decision.decision === 'approved' ? 'success' : 
+                                     decision.decision === 'rejected' ? 'danger' :
+                                     decision.decision === 'pending' ? 'warning' : 'info';
+                
+                const decisionIcon = decision.decision === 'approved' ? 'check-circle' :
+                                    decision.decision === 'rejected' ? 'times-circle' :
+                                    decision.decision === 'pending' ? 'hourglass' : 'question-circle';
+                
+                const votePercentage = decision.total_votes > 0 ? 
+                    Math.round((decision.votes_yes / decision.total_votes) * 100) : 0;
+                
+                return `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1 text-center">
+                                    <i class="fas fa-${decisionIcon} fa-2x text-${decisionColor}"></i>
+                                </div>
+                                <div class="col-md-7">
+                                    <h6 class="mb-1">${decision.candidate_name}</h6>
+                                    <small class="text-muted">${decision.job_title}</small><br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-users"></i> ${decision.committee_name}
+                                    </small>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="badge bg-${decisionColor}">
+                                        ${decision.decision.charAt(0).toUpperCase() + decision.decision.slice(1)}
+                                    </span>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="viewDecisionDetails(${decision.id})">
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Vote Summary -->
+                            <div class="mt-3">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" style="width: ${votePercentage}%">
+                                        ${decision.votes_yes} Approved
+                                    </div>
+                                    <div class="progress-bar bg-danger" 
+                                         style="width: ${100 - votePercentage}%">
+                                        ${decision.votes_no} Rejected
+                                    </div>
+                                    ${decision.votes_abstain > 0 ? 
+                                        `<div class="progress-bar bg-warning" style="width: auto">
+                                            ${decision.votes_abstain} Abstain
+                                        </div>` : ''}
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    ${decision.votes_pending} votes pending
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(error => {
+            console.error('Error loading decisions:', error);
+            document.getElementById('decisionsList').innerHTML = 
+                '<div class="alert alert-danger">Error loading decisions</div>';
+        });
+}
+
+function applyFilters() {
+    loadDecisions();
+}
+
+function viewDecisionDetails(decisionId) {
+    fetch(`/api/committee/decisions/${decisionId}`)
+        .then(response => response.json())
+        .then(decision => {
+            const votesHtml = decision.member_votes.map(vote => {
+                const voteColor = vote.vote === 'approved' ? 'success' : 
+                                 vote.vote === 'rejected' ? 'danger' : 'warning';
+                const voteIcon = vote.vote === 'approved' ? 'thumbs-up' :
+                                vote.vote === 'rejected' ? 'thumbs-down' : 'minus';
+                
+                return `
+                    <tr>
+                        <td>${vote.member_name}</td>
+                        <td>
+                            <span class="badge bg-${voteColor}">
+                                <i class="fas fa-${voteIcon}"></i> ${vote.vote}
+                            </span>
+                        </td>
+                        <td>${vote.rating ? '⭐ '.repeat(vote.rating) : '-'}</td>
+                        <td>${vote.comments || '-'}</td>
+                        <td><small>${new Date(vote.voted_at).toLocaleDateString()}</small></td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('decisionDetailsContent').innerHTML = `
+                <div class="mb-4">
+                    <h6>Decision Information</h6>
+                    <dl class="row">
+                        <dt class="col-sm-4">Candidate:</dt>
+                        <dd class="col-sm-8">${decision.candidate_name}</dd>
+                        <dt class="col-sm-4">Job:</dt>
+                        <dd class="col-sm-8">${decision.job_title}</dd>
+                        <dt class="col-sm-4">Committee:</dt>
+                        <dd class="col-sm-8">${decision.committee_name}</dd>
+                        <dt class="col-sm-4">Decision:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-${decision.decision === 'approved' ? 'success' : 'danger'}">
+                                ${decision.decision.toUpperCase()}
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+                
+                <div>
+                    <h6>Member Votes</h6>
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Vote</th>
+                                <th>Rating</th>
+                                <th>Comments</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${votesHtml || '<tr><td colspan="5" class="text-center text-muted">No votes yet</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('decisionDetailsModal')).show();
+        })
+        .catch(error => console.error('Error loading decision details:', error));
+}
+</script>
+
+<style>
+.card {
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.progress {
+    height: 25px;
+}
+
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
+}
+</style>
+{% endblock %}

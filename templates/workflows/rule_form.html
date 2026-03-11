@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if rule else 'Create' }} Workflow Rule - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-diagram-3"></i> 
+                        {{ 'Edit Workflow Rule' if rule else 'Create Workflow Rule' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <!-- Basic Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <label class="form-label">Rule Name *</label>
+                                <input type="text" name="name" class="form-control" required
+                                       value="{{ rule.name if rule else '' }}"
+                                       placeholder="e.g., Auto-shortlist high scorers">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Priority</label>
+                                <input type="number" name="priority" class="form-control" min="0" max="100"
+                                       value="{{ rule.priority if rule else 0 }}"
+                                       placeholder="0-100 (higher = first)">
+                                <small class="text-muted">Higher priority rules execute first</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2"
+                                      placeholder="Describe what this rule does...">{{ rule.description if rule else '' }}</textarea>
+                        </div>
+
+                        <hr>
+
+                        <!-- Trigger Configuration -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-lightning"></i> Trigger Configuration</h6>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Trigger Type *</label>
+                                <select name="trigger_type" id="triggerType" class="form-select" required onchange="updateTriggerFields()">
+                                    <option value="">Select trigger...</option>
+                                    <option value="status_change" {{ 'selected' if rule and rule.trigger_type == 'status_change' }}>
+                                        Status Change
+                                    </option>
+                                    <option value="time_based" {{ 'selected' if rule and rule.trigger_type == 'time_based' }}>
+                                        Time-Based
+                                    </option>
+                                    <option value="score_based" {{ 'selected' if rule and rule.trigger_type == 'score_based' }}>
+                                        Score-Based
+                                    </option>
+                                    <option value="document_submitted" {{ 'selected' if rule and rule.trigger_type == 'document_submitted' }}>
+                                        Document Submitted
+                                    </option>
+                                    <option value="interview_scheduled" {{ 'selected' if rule and rule.trigger_type == 'interview_scheduled' }}>
+                                        Interview Scheduled
+                                    </option>
+                                    <option value="interview_completed" {{ 'selected' if rule and rule.trigger_type == 'interview_completed' }}>
+                                        Interview Completed
+                                    </option>
+                                    <option value="job_closing" {{ 'selected' if rule and rule.trigger_type == 'job_closing' }}>
+                                        Job Closing Soon
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="triggerStatusGroup" style="display: none;">
+                                <label class="form-label">Trigger Status</label>
+                                <select name="trigger_status" class="form-select">
+                                    <option value="">Any status</option>
+                                    {% for status in statuses %}
+                                    <option value="{{ status }}" {{ 'selected' if rule and rule.trigger_status == status }}>
+                                        {{ status.replace('_', ' ').title() }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6" id="triggerDaysGroup" style="display: none;">
+                                <label class="form-label">Days</label>
+                                <input type="number" name="trigger_days" class="form-control" min="1"
+                                       value="{{ rule.trigger_days if rule else '' }}"
+                                       placeholder="Number of days">
+                                <small class="text-muted" id="daysHelp">Days after event</small>
+                            </div>
+                            <div class="col-md-6" id="triggerScoreGroup" style="display: none;">
+                                <label class="form-label">Score Threshold</label>
+                                <input type="number" name="trigger_score" class="form-control" min="0" max="100"
+                                       value="{{ rule.trigger_score if rule else '' }}"
+                                       placeholder="Minimum score to trigger">
+                            </div>
+                            <div class="col-md-6" id="timeReferenceGroup" style="display: none;">
+                                <label class="form-label">Time Reference</label>
+                                <select name="time_reference" class="form-select">
+                                    <option value="application_date" {{ 'selected' if rule and rule.action_config and rule.action_config.get('time_reference') == 'application_date' }}>
+                                        Application Date
+                                    </option>
+                                    <option value="last_updated" {{ 'selected' if rule and rule.action_config and rule.action_config.get('time_reference') == 'last_updated' }}>
+                                        Last Updated
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Action Configuration -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-gear"></i> Action Configuration</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Action Type *</label>
+                                <select name="action_type" id="actionType" class="form-select" required onchange="updateActionFields()">
+                                    <option value="">Select action...</option>
+                                    <option value="change_status" {{ 'selected' if rule and rule.action_type == 'change_status' }}>
+                                        Change Status
+                                    </option>
+                                    <option value="send_email" {{ 'selected' if rule and rule.action_type == 'send_email' }}>
+                                        Send Email
+                                    </option>
+                                    <option value="send_notification" {{ 'selected' if rule and rule.action_type == 'send_notification' }}>
+                                        Send Notification
+                                    </option>
+                                    <option value="create_task" {{ 'selected' if rule and rule.action_type == 'create_task' }}>
+                                        Create Task
+                                    </option>
+                                    <option value="schedule_reminder" {{ 'selected' if rule and rule.action_type == 'schedule_reminder' }}>
+                                        Schedule Reminder
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="actionStatusGroup" style="display: none;">
+                                <label class="form-label">New Status</label>
+                                <select name="action_status" class="form-select">
+                                    <option value="">Select status...</option>
+                                    {% for status in statuses %}
+                                    <option value="{{ status }}" {{ 'selected' if rule and rule.action_status == status }}>
+                                        {{ status.replace('_', ' ').title() }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Template Selection -->
+                        <div class="mb-3" id="templateGroup" style="display: none;">
+                            <label class="form-label">Use Message Template (optional)</label>
+                            <select name="action_template_id" class="form-select">
+                                <option value="">No template - use custom message</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}" {{ 'selected' if rule and rule.action_template_id == template.id }}>
+                                    {{ template.name }} ({{ template.template_type }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Email/Notification Fields -->
+                        <div id="emailFields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Subject</label>
+                                <input type="text" name="email_subject" class="form-control"
+                                       value="{{ rule.action_config.subject if rule and rule.action_config else '' }}"
+                                       placeholder="Email/notification subject">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Body</label>
+                                <textarea name="email_body" class="form-control" rows="4"
+                                          placeholder="Use {{applicant_name}}, {{job_title}}, {{application_status}} as placeholders">{{ rule.action_config.body if rule and rule.action_config else '' }}</textarea>
+                                <small class="text-muted">Available placeholders: {{applicant_name}}, {{job_title}}, {{job_reference}}, {{application_status}}</small>
+                            </div>
+                        </div>
+
+                        <!-- Task Fields -->
+                        <div id="taskFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <label class="form-label">Task Name</label>
+                                    <input type="text" name="task_name" class="form-control"
+                                           value="{{ rule.action_config.task_name if rule and rule.action_config else '' }}"
+                                           placeholder="Task name">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Due In (days)</label>
+                                    <input type="number" name="task_days" class="form-control" min="1"
+                                           value="{{ rule.action_config.days if rule and rule.action_config else 3 }}">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Task Description</label>
+                                <textarea name="task_description" class="form-control" rows="2">{{ rule.action_config.description if rule and rule.action_config else '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Reminder Fields -->
+                        <div id="reminderFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <label class="form-label">Reminder Text</label>
+                                    <input type="text" name="reminder_text" class="form-control"
+                                           value="{{ rule.action_config.reminder_text if rule and rule.action_config else '' }}"
+                                           placeholder="What to remind about">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Remind In (days)</label>
+                                    <input type="number" name="reminder_days" class="form-control" min="1"
+                                           value="{{ rule.action_config.days if rule and rule.action_config else 7 }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Conditions -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-filter"></i> Conditions (Optional)</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Apply to Job</label>
+                                <select name="condition_job_id" class="form-select">
+                                    <option value="">All Jobs</option>
+                                    {% for job in jobs %}
+                                    <option value="{{ job.id }}" {{ 'selected' if rule and rule.condition_job_id == job.id }}>
+                                        {{ job.title }} ({{ job.job_reference }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Minimum Score</label>
+                                <input type="number" name="condition_min_score" class="form-control" min="0" max="100"
+                                       value="{{ rule.condition_min_score if rule else '' }}"
+                                       placeholder="Any">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Maximum Score</label>
+                                <input type="number" name="condition_max_score" class="form-control" min="0" max="100"
+                                       value="{{ rule.condition_max_score if rule else '' }}"
+                                       placeholder="Any">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Status -->
+                        <div class="form-check mb-4">
+                            <input type="checkbox" name="is_active" id="isActive" class="form-check-input"
+                                   {{ 'checked' if not rule or rule.is_active }}>
+                            <label class="form-check-label" for="isActive">
+                                <strong>Active</strong> - Rule will be executed when triggered
+                            </label>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> {{ 'Update Rule' if rule else 'Create Rule' }}
+                            </button>
+                            <a href="{{ url_for('hr.workflows') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTriggerFields() {
+    const triggerType = document.getElementById('triggerType').value;
+    
+    // Hide all trigger-specific fields first
+    document.getElementById('triggerStatusGroup').style.display = 'none';
+    document.getElementById('triggerDaysGroup').style.display = 'none';
+    document.getElementById('triggerScoreGroup').style.display = 'none';
+    document.getElementById('timeReferenceGroup').style.display = 'none';
+    
+    // Show relevant fields based on trigger type
+    if (triggerType === 'status_change') {
+        document.getElementById('triggerStatusGroup').style.display = 'block';
+    } else if (triggerType === 'time_based') {
+        document.getElementById('triggerStatusGroup').style.display = 'block';
+        document.getElementById('triggerDaysGroup').style.display = 'block';
+        document.getElementById('timeReferenceGroup').style.display = 'block';
+        document.getElementById('daysHelp').textContent = 'Days since reference event';
+    } else if (triggerType === 'score_based') {
+        document.getElementById('triggerScoreGroup').style.display = 'block';
+    } else if (triggerType === 'job_closing') {
+        document.getElementById('triggerDaysGroup').style.display = 'block';
+        document.getElementById('daysHelp').textContent = 'Days before closing date';
+    } else if (triggerType === 'interview_completed') {
+        // Score might be relevant for interview completion
+        document.getElementById('triggerScoreGroup').style.display = 'block';
+    }
+}
+
+function updateActionFields() {
+    const actionType = document.getElementById('actionType').value;
+    
+    // Hide all action-specific fields first
+    document.getElementById('actionStatusGroup').style.display = 'none';
+    document.getElementById('templateGroup').style.display = 'none';
+    document.getElementById('emailFields').style.display = 'none';
+    document.getElementById('taskFields').style.display = 'none';
+    document.getElementById('reminderFields').style.display = 'none';
+    
+    // Show relevant fields based on action type
+    if (actionType === 'change_status') {
+        document.getElementById('actionStatusGroup').style.display = 'block';
+    } else if (actionType === 'send_email' || actionType === 'send_notification') {
+        document.getElementById('templateGroup').style.display = 'block';
+        document.getElementById('emailFields').style.display = 'block';
+    } else if (actionType === 'create_task') {
+        document.getElementById('taskFields').style.display = 'block';
+    } else if (actionType === 'schedule_reminder') {
+        document.getElementById('reminderFields').style.display = 'block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTriggerFields();
+    updateActionFields();
+});
+</script>
+{% endblock %}

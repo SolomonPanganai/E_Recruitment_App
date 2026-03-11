@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Time to Hire Report - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.reports') }}">Reports</a></li>
+                    <li class="breadcrumb-item active">Time to Hire</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0"><i class="bi bi-clock-history me-2"></i>Time to Hire Analysis</h1>
+            <p class="text-muted mb-0">Analyze hiring efficiency and timeline metrics</p>
+        </div>
+        <a href="{{ url_for('hr.reports') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Reports
+        </a>
+    </div>
+
+    <!-- Overall Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body text-center">
+                    <h2 class="display-4">{{ avg_days }}</h2>
+                    <p class="mb-0">Average Days to Hire</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body text-center">
+                    <h2 class="display-4">{{ min_days or 0 }}</h2>
+                    <p class="mb-0">Fastest Hire (Days)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning h-100">
+                <div class="card-body text-center">
+                    <h2 class="display-4">{{ max_days or 0 }}</h2>
+                    <p class="mb-0">Slowest Hire (Days)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Breakdown -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-building me-2"></i>Time to Hire by Department</h5>
+        </div>
+        <div class="card-body">
+            {% if dept_stats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Department</th>
+                            <th class="text-center">Hires</th>
+                            <th class="text-center">Avg Days</th>
+                            <th class="text-center">Performance</th>
+                            <th>Visual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in dept_stats %}
+                        <tr>
+                            <td><strong>{{ stat.department or 'Not Specified' }}</strong></td>
+                            <td class="text-center">{{ stat.count }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if stat.avg_days <= avg_days %}bg-success{% else %}bg-warning{% endif %} fs-6">
+                                    {{ stat.avg_days }} days
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if stat.avg_days <= avg_days %}
+                                <span class="text-success"><i class="bi bi-arrow-up-circle-fill"></i> Above Average</span>
+                                {% else %}
+                                <span class="text-warning"><i class="bi bi-arrow-down-circle-fill"></i> Below Average</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 30%;">
+                                {% set max_bar = 60 %}
+                                {% set bar_width = (stat.avg_days / max_bar * 100) if stat.avg_days < max_bar else 100 %}
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if stat.avg_days <= avg_days %}bg-success{% else %}bg-warning{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ bar_width }}%">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox display-1"></i>
+                <p class="mt-3">No hiring data available yet. Complete the hiring process to see time-to-hire metrics.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Hires Timeline -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Recent Hires Timeline</h5>
+        </div>
+        <div class="card-body">
+            {% if recent_hires %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Job</th>
+                            <th>Department</th>
+                            <th class="text-center">Applied</th>
+                            <th class="text-center">Hired</th>
+                            <th class="text-center">Days</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hire in recent_hires %}
+                        <tr>
+                            <td>
+                                <strong>{{ hire.candidate }}</strong>
+                            </td>
+                            <td>{{ hire.job_title }}</td>
+                            <td>{{ hire.department or 'N/A' }}</td>
+                            <td class="text-center">{{ hire.applied_date.strftime('%d %b %Y') }}</td>
+                            <td class="text-center">{{ hire.hired_date.strftime('%d %b %Y') }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if hire.days_to_hire <= avg_days %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ hire.days_to_hire }} days
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox display-1"></i>
+                <p class="mt-3">No completed hires yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Recommendations</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>To Reduce Time-to-Hire:</h6>
+                    <ul>
+                        <li>Streamline interview scheduling</li>
+                        <li>Use assessments to quickly filter candidates</li>
+                        <li>Set clear decision timelines for each stage</li>
+                        <li>Pre-screen with phone interviews</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Best Practices:</h6>
+                    <ul>
+                        <li>Target: 30-45 days for most positions</li>
+                        <li>Review applications within 48 hours</li>
+                        <li>Complete interviews within 2 weeks of shortlisting</li>
+                        <li>Make offers within 3 days of final interview</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

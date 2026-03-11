@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if task else 'Create' }} Scheduled Task - E-Recruit{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock"></i> 
+                        {{ 'Edit Scheduled Task' if task else 'Create Scheduled Task' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <!-- Basic Info -->
+                        <div class="mb-3">
+                            <label class="form-label">Task Name *</label>
+                            <input type="text" name="name" class="form-control" required
+                                   value="{{ task.name if task else '' }}"
+                                   placeholder="e.g., Daily Interview Reminders">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2"
+                                      placeholder="Describe what this task does...">{{ task.description if task else '' }}</textarea>
+                        </div>
+
+                        <hr>
+
+                        <!-- Task Type -->
+                        <div class="mb-3">
+                            <label class="form-label">Task Type *</label>
+                            <select name="task_type" id="taskType" class="form-select" required onchange="updateTaskConfig()">
+                                <option value="">Select task type...</option>
+                                <option value="job_closing_reminder" {{ 'selected' if task and task.task_type == 'job_closing_reminder' }}>
+                                    Job Closing Reminder
+                                </option>
+                                <option value="interview_reminder" {{ 'selected' if task and task.task_type == 'interview_reminder' }}>
+                                    Interview Reminder
+                                </option>
+                                <option value="application_followup" {{ 'selected' if task and task.task_type == 'application_followup' }}>
+                                    Application Follow-up
+                                </option>
+                                <option value="document_reminder" {{ 'selected' if task and task.task_type == 'document_reminder' }}>
+                                    Document Reminder
+                                </option>
+                                <option value="report_generation" {{ 'selected' if task and task.task_type == 'report_generation' }}>
+                                    Report Generation
+                                </option>
+                                <option value="cleanup" {{ 'selected' if task and task.task_type == 'cleanup' }}>
+                                    Cleanup Old Data
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Task-specific configuration -->
+                        <div id="jobClosingConfig" style="display: none;" class="mb-3">
+                            <label class="form-label">Days Before Closing</label>
+                            <input type="number" name="days_before" class="form-control" min="1" max="30"
+                                   value="{{ task.task_config.days_before if task and task.task_config else 3 }}">
+                            <small class="text-muted">Send reminder this many days before job closing date</small>
+                        </div>
+
+                        <div id="interviewConfig" style="display: none;" class="mb-3">
+                            <label class="form-label">Hours Before Interview</label>
+                            <input type="number" name="hours_before" class="form-control" min="1" max="72"
+                                   value="{{ task.task_config.hours_before if task and task.task_config else 24 }}">
+                            <small class="text-muted">Send reminder this many hours before scheduled interview</small>
+                        </div>
+
+                        <div id="documentConfig" style="display: none;" class="mb-3">
+                            <label class="form-label">Days Since Application</label>
+                            <input type="number" name="doc_reminder_days" class="form-control" min="1" max="30"
+                                   value="{{ task.task_config.days if task and task.task_config else 7 }}">
+                            <small class="text-muted">Send document reminder if documents missing after this many days</small>
+                        </div>
+
+                        <div id="cleanupConfig" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Execution Log Retention (days)</label>
+                                <input type="number" name="log_retention_days" class="form-control" min="30" max="365"
+                                       value="{{ task.task_config.execution_log_days if task and task.task_config else 90 }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Read Message Retention (days)</label>
+                                <input type="number" name="message_retention_days" class="form-control" min="30" max="365"
+                                       value="{{ task.task_config.message_days if task and task.task_config else 180 }}">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Schedule -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-calendar3"></i> Schedule</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Schedule Type *</label>
+                                <select name="schedule_type" id="scheduleType" class="form-select" required onchange="updateScheduleFields()">
+                                    <option value="once" {{ 'selected' if task and task.schedule_type == 'once' }}>Once</option>
+                                    <option value="daily" {{ 'selected' if task and task.schedule_type == 'daily' }}>Daily</option>
+                                    <option value="weekly" {{ 'selected' if task and task.schedule_type == 'weekly' }}>Weekly</option>
+                                    <option value="monthly" {{ 'selected' if task and task.schedule_type == 'monthly' }}>Monthly</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Time</label>
+                                <input type="time" name="scheduled_time" class="form-control"
+                                       value="{{ task.scheduled_time.strftime('%H:%M') if task and task.scheduled_time else '09:00' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6" id="dateField" style="display: none;">
+                                <label class="form-label">Date (for one-time task)</label>
+                                <input type="date" name="scheduled_date" class="form-control"
+                                       value="{{ task.scheduled_date.strftime('%Y-%m-%d') if task and task.scheduled_date else '' }}">
+                            </div>
+                            <div class="col-md-6" id="dayOfWeekField" style="display: none;">
+                                <label class="form-label">Day of Week</label>
+                                <select name="day_of_week" class="form-select">
+                                    <option value="0" {{ 'selected' if task and task.day_of_week == 0 }}>Monday</option>
+                                    <option value="1" {{ 'selected' if task and task.day_of_week == 1 }}>Tuesday</option>
+                                    <option value="2" {{ 'selected' if task and task.day_of_week == 2 }}>Wednesday</option>
+                                    <option value="3" {{ 'selected' if task and task.day_of_week == 3 }}>Thursday</option>
+                                    <option value="4" {{ 'selected' if task and task.day_of_week == 4 }}>Friday</option>
+                                    <option value="5" {{ 'selected' if task and task.day_of_week == 5 }}>Saturday</option>
+                                    <option value="6" {{ 'selected' if task and task.day_of_week == 6 }}>Sunday</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="dayOfMonthField" style="display: none;">
+                                <label class="form-label">Day of Month</label>
+                                <input type="number" name="day_of_month" class="form-control" min="1" max="28"
+                                       value="{{ task.day_of_month if task and task.day_of_month else 1 }}">
+                                <small class="text-muted">Use 1-28 to ensure it works every month</small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Status -->
+                        <div class="form-check mb-4">
+                            <input type="checkbox" name="is_active" id="isActive" class="form-check-input"
+                                   {{ 'checked' if not task or task.is_active }}>
+                            <label class="form-check-label" for="isActive">
+                                <strong>Active</strong> - Task will run according to schedule
+                            </label>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> {{ 'Update Task' if task else 'Create Task' }}
+                            </button>
+                            <a href="{{ url_for('hr.scheduled_tasks') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTaskConfig() {
+    const taskType = document.getElementById('taskType').value;
+    
+    // Hide all config sections
+    document.getElementById('jobClosingConfig').style.display = 'none';
+    document.getElementById('interviewConfig').style.display = 'none';
+    document.getElementById('documentConfig').style.display = 'none';
+    document.getElementById('cleanupConfig').style.display = 'none';
+    
+    // Show relevant config
+    if (taskType === 'job_closing_reminder') {
+        document.getElementById('jobClosingConfig').style.display = 'block';
+    } else if (taskType === 'interview_reminder') {
+        document.getElementById('interviewConfig').style.display = 'block';
+    } else if (taskType === 'document_reminder') {
+        document.getElementById('documentConfig').style.display = 'block';
+    } else if (taskType === 'cleanup') {
+        document.getElementById('cleanupConfig').style.display = 'block';
+    }
+}
+
+function updateScheduleFields() {
+    const scheduleType = document.getElementById('scheduleType').value;
+    
+    // Hide all schedule-specific fields
+    document.getElementById('dateField').style.display = 'none';
+    document.getElementById('dayOfWeekField').style.display = 'none';
+    document.getElementById('dayOfMonthField').style.display = 'none';
+    
+    // Show relevant fields
+    if (scheduleType === 'once') {
+        document.getElementById('dateField').style.display = 'block';
+    } else if (scheduleType === 'weekly') {
+        document.getElementById('dayOfWeekField').style.display = 'block';
+    } else if (scheduleType === 'monthly') {
+        document.getElementById('dayOfMonthField').style.display = 'block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTaskConfig();
+    updateScheduleFields();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Recruitment Summary Report{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('hr.reports') }}">Reports</a></li>
+            <li class="breadcrumb-item active">Recruitment Summary</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-bar-graph"></i> Recruitment Summary Report</h2>
+    <button onclick="window.print()" class="btn btn-outline-primary">
+        <i class="bi bi-printer"></i> Print Report
+    </button>
+</div>
+
+<!-- Overview Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ metrics.total_jobs }}</h2>
+                <p class="mb-0">Total Jobs</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ metrics.total_applications }}</h2>
+                <p class="mb-0">Total Applications</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ "%.1f"|format(metrics.avg_applications_per_job) }}</h2>
+                <p class="mb-0">Avg Applications/Job</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ metrics.by_status.offered }}</h2>
+                <p class="mb-0">Offers Made</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Application Status Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Applications by Status</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set total = metrics.total_applications %}
+                        <tr>
+                            <td><span class="badge bg-secondary">Submitted</span></td>
+                            <td>{{ metrics.by_status.submitted }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.submitted / total * 100 if total else 0) }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-info">Under Review</span></td>
+                            <td>{{ metrics.by_status.under_review }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.under_review / total * 100 if total else 0) }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success">Shortlisted</span></td>
+                            <td>{{ metrics.by_status.shortlisted }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.shortlisted / total * 100 if total else 0) }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-primary">Interviewed</span></td>
+                            <td>{{ metrics.by_status.interviewed }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.interviewed / total * 100 if total else 0) }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-warning text-dark">Offered</span></td>
+                            <td>{{ metrics.by_status.offered }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.offered / total * 100 if total else 0) }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-danger">Rejected</span></td>
+                            <td>{{ metrics.by_status.rejected }}</td>
+                            <td>{{ "%.1f"|format(metrics.by_status.rejected / total * 100 if total else 0) }}%</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-active">
+                            <th>Total</th>
+                            <th>{{ total }}</th>
+                            <th>100%</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Department Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-building"></i> By Department</h5>
+            </div>
+            <div class="card-body">
+                {% if metrics.by_department %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Jobs</th>
+                            <th>Applications</th>
+                            <th>Avg/Job</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept, data in metrics.by_department.items() %}
+                        <tr>
+                            <td>{{ dept }}</td>
+                            <td>{{ data.jobs }}</td>
+                            <td>{{ data.applications }}</td>
+                            <td>{{ "%.1f"|format(data.applications / data.jobs if data.jobs else 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center">No department data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conversion Funnel -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Recruitment Funnel</h5>
+    </div>
+    <div class="card-body">
+        {% set total = metrics.total_applications %}
+        {% if total > 0 %}
+        <div class="row text-center">
+            <div class="col">
+                <div class="p-3 bg-secondary bg-opacity-10 rounded">
+                    <h3>{{ total }}</h3>
+                    <small>Applied</small>
+                </div>
+            </div>
+            <div class="col-auto d-flex align-items-center">
+                <i class="bi bi-chevron-right fs-3 text-muted"></i>
+            </div>
+            <div class="col">
+                <div class="p-3 bg-info bg-opacity-10 rounded">
+                    <h3>{{ metrics.by_status.under_review + metrics.by_status.shortlisted + metrics.by_status.interviewed + metrics.by_status.offered }}</h3>
+                    <small>Reviewed</small>
+                </div>
+            </div>
+            <div class="col-auto d-flex align-items-center">
+                <i class="bi bi-chevron-right fs-3 text-muted"></i>
+            </div>
+            <div class="col">
+                <div class="p-3 bg-success bg-opacity-10 rounded">
+                    <h3>{{ metrics.by_status.shortlisted + metrics.by_status.interviewed + metrics.by_status.offered }}</h3>
+                    <small>Shortlisted</small>
+                </div>
+            </div>
+            <div class="col-auto d-flex align-items-center">
+                <i class="bi bi-chevron-right fs-3 text-muted"></i>
+            </div>
+            <div class="col">
+                <div class="p-3 bg-primary bg-opacity-10 rounded">
+                    <h3>{{ metrics.by_status.interviewed + metrics.by_status.offered }}</h3>
+                    <small>Interviewed</small>
+                </div>
+            </div>
+            <div class="col-auto d-flex align-items-center">
+                <i class="bi bi-chevron-right fs-3 text-muted"></i>
+            </div>
+            <div class="col">
+                <div class="p-3 bg-warning bg-opacity-10 rounded">
+                    <h3>{{ metrics.by_status.offered }}</h3>
+                    <small>Offered</small>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">No data available for the funnel.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ url_for('hr.reports') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>
+{% endblock %}

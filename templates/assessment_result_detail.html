@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment Result - {{ attempt.candidate.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.assessments_list') }}">Assessments</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.assessment_detail', assessment_id=attempt.assessment_id) }}">{{ attempt.assessment.title }}</a></li>
+                    <li class="breadcrumb-item active">Result</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Assessment Result</h1>
+            <p class="text-muted mb-0">{{ attempt.candidate.full_name }} - {{ attempt.assessment.title }}</p>
+        </div>
+        <a href="{{ url_for('hr.assessment_detail', assessment_id=attempt.assessment_id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Summary Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Result Summary</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-3 fw-bold {% if attempt.passed %}text-success{% else %}text-danger{% endif %}">
+                        {{ "%.1f"|format(attempt.score) }}%
+                    </div>
+                    
+                    {% if attempt.passed %}
+                    <span class="badge bg-success fs-6 mb-3">PASSED</span>
+                    {% else %}
+                    <span class="badge bg-danger fs-6 mb-3">FAILED</span>
+                    {% endif %}
+                    
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div class="progress-bar {% if attempt.passed %}bg-success{% else %}bg-danger{% endif %}" 
+                             role="progressbar" style="width: {{ attempt.score }}%">
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted mb-0">
+                        {{ attempt.points_earned }} / {{ attempt.total_points }} points
+                    </p>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Candidate</span>
+                        <strong>{{ attempt.candidate.full_name }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Email</span>
+                        <span>{{ attempt.candidate.email }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Application</span>
+                        <a href="{{ url_for('hr.application_detail', application_id=attempt.application_id) }}">
+                            {{ attempt.application.application_reference }}
+                        </a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Attempt #</span>
+                        <span>{{ attempt.attempt_number }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Started</span>
+                        <span>{{ attempt.started_at.strftime('%d %b %Y %H:%M') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Completed</span>
+                        <span>{{ attempt.completed_at.strftime('%d %b %Y %H:%M') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Duration</span>
+                        {% set duration = (attempt.completed_at - attempt.started_at).total_seconds() %}
+                        <span>{{ (duration // 60)|int }}m {{ (duration % 60)|int }}s</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Detailed Answers -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Question Details</h5>
+                    <span class="badge bg-primary">{{ answers|length }} Questions</span>
+                </div>
+                <div class="card-body">
+                    {% for answer in answers %}
+                    {% set question = answer.question %}
+                    <div class="border rounded p-3 mb-3 {% if answer.is_correct %}border-success{% elif answer.is_correct == False %}border-danger{% else %}border-warning{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-secondary me-2">Q{{ loop.index }}</span>
+                                <span class="badge bg-info">{{ question.question_type.replace('_', ' ').title() }}</span>
+                            </div>
+                            <div>
+                                {% if answer.is_correct == True %}
+                                <span class="badge bg-success"><i class="bi bi-check me-1"></i>+{{ answer.points_awarded }} pts</span>
+                                {% elif answer.is_correct == False %}
+                                <span class="badge bg-danger"><i class="bi bi-x me-1"></i>0 pts</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass me-1"></i>Needs Review</span>
+                                {% endif %}
+                                <small class="text-muted ms-2">({{ question.points }} pts max)</small>
+                            </div>
+                        </div>
+                        
+                        <p class="fw-bold mb-3">{{ question.question_text }}</p>
+                        
+                        {% if question.question_type in ['multiple_choice', 'true_false'] %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Candidate's Answer:</small>
+                                {% if answer.selected_option %}
+                                <span class="{% if answer.is_correct %}text-success{% else %}text-danger{% endif %}">
+                                    {{ answer.selected_option.option_text }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">No answer</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Correct Answer:</small>
+                                <span class="text-success">
+                                    {% for opt in question.options if opt.is_correct %}
+                                    {{ opt.option_text }}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% elif question.question_type == 'multiple_select' %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Candidate Selected:</small>
+                                {% if answer.selected_options %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for opt_id in answer.selected_options %}
+                                    {% set opt = question.options.filter_by(id=opt_id).first() %}
+                                    <li class="{% if opt.is_correct %}text-success{% else %}text-danger{% endif %}">
+                                        {{ opt.option_text if opt else 'Unknown' }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <span class="text-muted">None selected</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Correct Answers:</small>
+                                <ul class="list-unstyled mb-0 text-success">
+                                    {% for opt in question.options if opt.is_correct %}
+                                    <li>{{ opt.option_text }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {% elif question.question_type == 'text' %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block mb-1">Candidate's Answer:</small>
+                            <div class="bg-light p-2 rounded">
+                                {{ answer.text_answer or 'No answer provided' }}
+                            </div>
+                        </div>
+                        {% if question.expected_answer %}
+                        <div>
+                            <small class="text-muted d-block mb-1">Expected Answer Guide:</small>
+                            <div class="bg-success bg-opacity-10 p-2 rounded text-success">
+                                {{ question.expected_answer }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

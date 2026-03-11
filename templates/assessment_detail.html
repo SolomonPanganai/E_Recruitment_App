@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assessment.title }} - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('hr.assessments_list') }}">Assessments</a></li>
+                    <li class="breadcrumb-item active">{{ assessment.title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ assessment.title }}</h1>
+            <p class="text-muted mb-0">
+                <a href="{{ url_for('hr.job_detail', job_id=assessment.job_id) }}">{{ assessment.job.title }}</a>
+            </p>
+        </div>
+        <div class="btn-group">
+            <a href="{{ url_for('hr.manage_questions', assessment_id=assessment.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-list-ol me-1"></i>Questions
+            </a>
+            <a href="{{ url_for('hr.edit_assessment', assessment_id=assessment.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil me-1"></i>Edit
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Info Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Assessment Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            {% if assessment.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                            {% if assessment.is_mandatory %}
+                            <span class="badge bg-warning">Mandatory</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-5">Questions</dt>
+                        <dd class="col-sm-7">{{ assessment.total_questions }}</dd>
+                        
+                        <dt class="col-sm-5">Total Points</dt>
+                        <dd class="col-sm-7">{{ assessment.total_points }}</dd>
+                        
+                        <dt class="col-sm-5">Time Limit</dt>
+                        <dd class="col-sm-7">
+                            {% if assessment.time_limit_minutes %}
+                            {{ assessment.time_limit_minutes }} minutes
+                            {% else %}
+                            No limit
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-5">Pass Score</dt>
+                        <dd class="col-sm-7">{{ assessment.pass_score }}%</dd>
+                        
+                        <dt class="col-sm-5">Max Attempts</dt>
+                        <dd class="col-sm-7">{{ assessment.max_attempts }}</dd>
+                        
+                        <dt class="col-sm-5">Created</dt>
+                        <dd class="col-sm-7">{{ assessment.created_at.strftime('%d %b %Y') }}</dd>
+                    </dl>
+                    
+                    {% if assessment.description %}
+                    <hr>
+                    <h6>Description</h6>
+                    <p class="text-muted mb-0">{{ assessment.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="display-5 text-primary">{{ stats.total_attempts }}</div>
+                            <div class="text-muted">Total Attempts</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-5 text-success">{{ stats.passed }}</div>
+                            <div class="text-muted">Passed</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-5 text-danger">{{ stats.failed }}</div>
+                            <div class="text-muted">Failed</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-5 text-info">{{ "%.1f"|format(stats.avg_score) }}%</div>
+                            <div class="text-muted">Avg Score</div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.total_attempts > 0 %}
+                    <div class="mt-3">
+                        <label class="form-label small text-muted">Pass Rate</label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats.pass_rate }}%">
+                                {{ "%.1f"|format(stats.pass_rate) }}% Pass Rate
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attempts Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Candidate Attempts</h5>
+        </div>
+        <div class="card-body">
+            {% if attempts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Application</th>
+                            <th>Attempt</th>
+                            <th>Started</th>
+                            <th>Completed</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in attempts %}
+                        <tr>
+                            <td>
+                                <strong>{{ attempt.candidate.full_name }}</strong><br>
+                                <small class="text-muted">{{ attempt.candidate.email }}</small>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('hr.application_detail', application_id=attempt.application_id) }}">
+                                    {{ attempt.application.application_reference }}
+                                </a>
+                            </td>
+                            <td>{{ attempt.attempt_number }}</td>
+                            <td>{{ attempt.started_at.strftime('%d %b %Y %H:%M') }}</td>
+                            <td>
+                                {% if attempt.completed_at %}
+                                {{ attempt.completed_at.strftime('%d %b %Y %H:%M') }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if attempt.score is not none %}
+                                <span class="{% if attempt.passed %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ "%.1f"|format(attempt.score) }}%
+                                </span>
+                                <br>
+                                <small class="text-muted">{{ attempt.points_earned }}/{{ attempt.total_points }} pts</small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if attempt.status == 'completed' %}
+                                    {% if attempt.passed %}
+                                    <span class="badge bg-success">Passed</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                {% elif attempt.status == 'in_progress' %}
+                                <span class="badge bg-warning">In Progress</span>
+                                {% elif attempt.status == 'timed_out' %}
+                                <span class="badge bg-secondary">Timed Out</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ attempt.status.replace('_', ' ').title() }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if attempt.status == 'completed' %}
+                                <a href="{{ url_for('hr.view_assessment_result', attempt_id=attempt.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-person-x display-4 text-muted"></i>
+                <p class="mt-3 text-muted">No attempts yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
