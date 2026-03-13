@@ -32,9 +32,10 @@ A comprehensive recruitment management system built with Flask for managing job 
 - Message templates
 
 ### Integrations
-- SharePoint integration for document library
+- SharePoint integration for document library and management
 - Email notifications for key events
 - Workflow automation via Celery
+- Batch SMS notifications (optional)
 
 ## Tech Stack
 
@@ -96,7 +97,17 @@ A comprehensive recruitment management system built with Flask for managing job 
    python scripts/create_admin.py
    ```
 
-8. **Run the application** (Terminal 1)
+8. **Start Redis** (Terminal 1)
+   ```bash
+   redis-server
+   ```
+
+9. **Run Celery worker** (Terminal 2)
+   ```bash
+   celery -A tasks.celery_app worker --loglevel=info
+   ```
+
+10. **Run the application** (Terminal 3)
    ```bash
    python wsgi.py
    # or use Flask directly:
