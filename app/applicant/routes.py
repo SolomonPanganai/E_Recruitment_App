@@ -111,7 +111,7 @@ def apply(job_id):
         
         # Save CV
         if form.cv_file.data:
-            cv_filename = save_uploaded_file(form.cv_file.data, f'applications/{application.id}')
+            cv_filename = save_uploaded_file(form.cv_file.data, f'applicants/{current_user.id}')
             if cv_filename:
                 cv_doc = Document(
                     application_id=application.id,
@@ -126,7 +126,7 @@ def apply(job_id):
         
         # Save ID document if provided
         if form.id_document.data:
-            id_filename = save_uploaded_file(form.id_document.data, f'applications/{application.id}')
+            id_filename = save_uploaded_file(form.id_document.data, f'applicants/{current_user.id}')
             if id_filename:
                 id_doc = Document(
                     application_id=application.id,
@@ -139,7 +139,7 @@ def apply(job_id):
         
         # Save qualifications if provided
         if form.qualifications.data:
-            qual_filename = save_uploaded_file(form.qualifications.data, f'applications/{application.id}')
+            qual_filename = save_uploaded_file(form.qualifications.data, f'applicants/{current_user.id}')
             if qual_filename:
                 qual_doc = Document(
                     application_id=application.id,
@@ -307,15 +307,23 @@ def download_document(doc_id):
             return redirect(url_for('applicant.dashboard'))
     
     # Determine subfolder from document
-    if document.application_id:
+    if document.application_id and document.application:
+        # New path: per-applicant folder
+        subfolder = f'applicants/{document.application.applicant_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
+        # Fall back to old per-application path
+        if not os.path.exists(os.path.join(upload_path, actual_filename)):
+            subfolder = f'applications/{document.application_id}'
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+    elif document.application_id:
         subfolder = f'applications/{document.application_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
     else:
         subfolder = 'documents'
-    
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    
-    # Get the actual filename from local_path
-    actual_filename = document.local_path if document.local_path else document.file_name
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
     
     return send_from_directory(upload_path, actual_filename, as_attachment=True, 
                                download_name=document.file_name)
@@ -334,13 +342,21 @@ def view_document(doc_id):
             return redirect(url_for('applicant.dashboard'))
     
     # Determine subfolder
-    if document.application_id:
+    if document.application_id and document.application:
+        subfolder = f'applicants/{document.application.applicant_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
+        if not os.path.exists(os.path.join(upload_path, actual_filename)):
+            subfolder = f'applications/{document.application_id}'
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+    elif document.application_id:
         subfolder = f'applications/{document.application_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
     else:
         subfolder = 'documents'
-    
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    actual_filename = document.local_path if document.local_path else document.file_name
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        actual_filename = document.local_path if document.local_path else document.file_name
     
     return send_from_directory(upload_path, actual_filename, as_attachment=False)
 
@@ -708,4 +724,45 @@ def delete_applicant_message(message_id):
     db.session.commit()
     flash('Message deleted.', 'info')
     return redirect(url_for('applicant.applicant_messages'))
+
+
+@applicant_bp.route('/messages/compose', methods=['GET', 'POST'])
+@login_required
+def compose_applicant_message():
+    """Applicant composes a new message to HR/staff."""
+    if current_user.role != 'applicant':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('applicant.applicant_messages'))
+    
+    if request.method == 'POST':
+        recipient_id = request.form.get('recipient_id', type=int)
+        subject = request.form.get('subject', '').strip()
+        body = request.form.get('body', '').strip()
+        
+        if not recipient_id or not subject or not body:
+            flash('Please fill in all required fields.', 'warning')
+            return redirect(url_for('applicant.compose_applicant_message'))
+        
+        recipient = User.query.get_or_404(recipient_id)
+        
+        message = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            subject=subject,
+            body=body,
+            message_type='inquiry'
+        )
+        db.session.add(message)
+        db.session.commit()
+        
+        flash('Message sent successfully!', 'success')
+        return redirect(url_for('applicant.applicant_messages', view='sent'))
+    
+    # GET - show compose form
+    hr_staff = User.query.filter(
+        User.role.in_(['hr_officer', 'manager', 'admin']),
+        User.is_active == True
+    ).order_by(User.last_name, User.first_name).all()
+    
+    return render_template('applicant_messages/compose.html', hr_staff=hr_staff)
 

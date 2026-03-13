@@ -122,62 +122,64 @@ def system_settings():
         db.session.add(settings)
         db.session.commit()
     form = SystemSettingsForm(obj=settings)
-    # Handle theme change from modal POST
-    if request.method == 'POST' and 'theme' in request.form:
-        from flask_wtf.csrf import validate_csrf
-        try:
-            validate_csrf(request.form.get('csrf_token'))
-        except Exception:
-            flash('Invalid CSRF token.', 'danger')
-            return redirect(url_for('hr.system_settings'))
-        settings.theme = request.form['theme']
-        settings.updated_at = datetime.utcnow()
-        db.session.commit()
-        flash('Theme updated successfully.', 'success')
-        return redirect(url_for('hr.system_settings'))
-    # Standard settings form
+
     if request.method == 'POST':
-        # Only update settings if form validates
+        # Distinguish theme-modal POST (has 'theme' but NOT 'system_name')
+        # from the full settings form POST (has 'system_name')
+        if 'system_name' not in request.form and 'theme' in request.form:
+            # Theme-only change from the modal in base.html
+            if current_app.config.get('WTF_CSRF_ENABLED', True):
+                from flask_wtf.csrf import validate_csrf
+                try:
+                    validate_csrf(request.form.get('csrf_token'))
+                except Exception:
+                    flash('Invalid CSRF token.', 'danger')
+                    return redirect(url_for('hr.system_settings'))
+            settings.theme = request.form['theme']
+            settings.updated_at = datetime.utcnow()
+            db.session.commit()
+            flash('Theme updated successfully.', 'success')
+            return redirect(url_for('hr.system_settings'))
+
+        # Full settings form submission
         if form.validate_on_submit():
             settings.system_name = form.system_name.data
             settings.theme = form.theme.data
             settings.updated_at = datetime.utcnow()
+
+            # Handle logo upload
             logo_file = form.logo.data
-            import logging
-            logger = logging.getLogger('logo_upload')
-            logger.info(f"Logo upload triggered. logo_file: {logo_file}, type: {type(logo_file)}")
             logo_updated = False
             if logo_file and hasattr(logo_file, 'filename') and logo_file.filename:
-                logger.info(f"Processing logo file: {logo_file.filename}")
+                # Validate extension
+                ext = logo_file.filename.rsplit('.', 1)[-1].lower()
+                if ext not in ('jpg', 'jpeg', 'png', 'gif'):
+                    flash('Invalid logo file type. Use JPG, PNG or GIF.', 'danger')
+                    return redirect(url_for('hr.system_settings'))
+
                 # Delete old logo file if exists
                 if settings.logo:
                     old_logo_path = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'images', settings.logo))
-                    logger.info(f"Checking for old logo file: {old_logo_path}")
                     if os.path.exists(old_logo_path):
                         try:
                             os.remove(old_logo_path)
-                            logger.info(f"Deleted old logo file: {old_logo_path}")
-                        except Exception as e:
-                            logger.error(f"Failed to delete old logo file: {e}")
-                ext = logo_file.filename.rsplit('.', 1)[-1].lower()
+                        except OSError as e:
+                            current_app.logger.error(f"Failed to delete old logo: {e}")
+
                 filename = f"logo_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
                 static_dir = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'images'))
-                logger.info(f"Saving logo to directory: {static_dir}")
-                if not os.path.exists(static_dir):
-                    os.makedirs(static_dir)
-                    logger.info(f"Created directory: {static_dir}")
+                os.makedirs(static_dir, exist_ok=True)
+
                 logo_path = os.path.join(static_dir, filename)
-                logger.info(f"Saving logo file to: {logo_path}")
                 try:
                     logo_file.save(logo_path)
-                    logger.info(f"Logo file saved successfully: {logo_path}")
                     settings.logo = filename
                     logo_updated = True
-                except Exception as e:
-                    logger.error(f"Failed to save new logo file: {e}")
-                    flash(f'Failed to upload logo: {e}', 'danger')
+                except OSError as e:
+                    current_app.logger.error(f"Failed to save logo: {e}")
+                    flash('Failed to upload logo. Please try again.', 'danger')
+
             db.session.commit()
-            # Only show one success message
             if logo_updated:
                 flash('Logo updated successfully!', 'success')
             else:
@@ -185,10 +187,6 @@ def system_settings():
             return redirect(url_for('hr.system_settings'))
         else:
             flash('Form validation failed. Please check your input.', 'danger')
-        settings.updated_at = datetime.utcnow()
-        db.session.commit()
-        flash('System settings updated successfully.', 'success')
-        return redirect(url_for('hr.system_settings'))
     return render_template('admin/system_settings.html', form=form, settings=settings)
 
 
@@ -502,7 +500,8 @@ def applications():
         search_term = f"%{search}%"
         query = query.filter(
             db.or_(
-                User.full_name.ilike(search_term),
+                User.first_name.ilike(search_term),
+                User.last_name.ilike(search_term),
                 User.email.ilike(search_term),
                 Application.application_reference.ilike(search_term),
                 JobPosting.title.ilike(search_term)
@@ -953,17 +952,12 @@ def cancel_interview(interview_id):
         send_email(
             to=interview.application.applicant.email,
             subject='Interview Cancelled - E-Recruitment Portal',
-            body=f"""Dear {interview.application.applicant.full_name},
-
-We regret to inform you that your interview scheduled for {interview.scheduled_date.strftime('%d %B %Y')} 
-at {interview.start_time.strftime('%H:%M')} has been cancelled.
-
-{f'Reason: {reason}' if reason else ''}
-
-We will contact you shortly to reschedule.
-
-Best regards,
-HR Team"""
+            template=f"""<p>Dear {interview.application.applicant.full_name},</p>
+<p>We regret to inform you that your interview scheduled for {interview.scheduled_date.strftime('%d %B %Y')} 
+at {interview.start_time.strftime('%H:%M')} has been cancelled.</p>
+<p>{f'Reason: {reason}' if reason else ''}</p>
+<p>We will contact you shortly to reschedule.</p>
+<p>Best regards,<br>HR Team</p>"""
         )
     except Exception as e:
         current_app.logger.error(f'Failed to send cancellation notification: {e}')
@@ -984,20 +978,15 @@ def send_interview_reminder(interview_id):
         send_email(
             to=interview.application.applicant.email,
             subject='Interview Reminder - E-Recruitment Portal',
-            body=f"""Dear {interview.application.applicant.full_name},
-
-This is a reminder about your upcoming interview:
-
-Position: {interview.application.job.title}
-Date: {interview.scheduled_date.strftime('%d %B %Y')}
-Time: {interview.start_time.strftime('%H:%M')} - {interview.end_time.strftime('%H:%M')}
-Type: {interview.interview_type.replace('_', ' ').title()}
-Location: {interview.location}
-
-Please ensure you are prepared and arrive/log in on time.
-
-Best regards,
-HR Team"""
+            template=f"""<p>Dear {interview.application.applicant.full_name},</p>
+<p>This is a reminder about your upcoming interview:</p>
+<p><strong>Position:</strong> {interview.application.job.title}<br>
+<strong>Date:</strong> {interview.scheduled_date.strftime('%d %B %Y')}<br>
+<strong>Time:</strong> {interview.start_time.strftime('%H:%M')} - {interview.end_time.strftime('%H:%M')}<br>
+<strong>Type:</strong> {interview.interview_type.replace('_', ' ').title()}<br>
+<strong>Location:</strong> {interview.location}</p>
+<p>Please ensure you are prepared and arrive/log in on time.</p>
+<p>Best regards,<br>HR Team</p>"""
         )
         flash('Reminder sent successfully.', 'success')
     except Exception as e:
@@ -1271,7 +1260,8 @@ def reports():
                            top_jobs=top_jobs,
                            ee_stats=ee_stats,
                            monthly_trend=monthly_trend,
-                           department_filter=department)
+                           department_filter=department,
+                           now=datetime.utcnow())
 
 
 @hr_bp.route('/reports/export/<report_type>')
@@ -1368,7 +1358,7 @@ def recruitment_funnel():
     
     jobs = JobPosting.query.filter(JobPosting.status.in_(['published', 'closed'])).all()
     
-    return render_template('recruitment_funnel.html', funnel=funnel, job=job, jobs=jobs)
+    return render_template('recruitment_funnel.html', funnel=funnel, job=job, jobs=jobs, now=datetime.utcnow())
 
 
 @hr_bp.route('/reports/time-to-hire')
@@ -1429,7 +1419,8 @@ def time_to_hire_report():
                            min_days=min_days,
                            max_days=max_days,
                            dept_stats=dept_stats,
-                           recent_hires=recent_hires)
+                           recent_hires=recent_hires,
+                           now=datetime.utcnow())
 
 
 # ============== Admin Functions ==============
@@ -1752,25 +1743,48 @@ def activity_api():
 @login_required
 @hr_required
 def document_library():
-    """Document library - all uploaded documents."""
-    page = request.args.get('page', 1, type=int)
+    """Document library - documents grouped by applicant folder."""
     doc_type = request.args.get('type', '')
     search = request.args.get('search', '')
     
-    query = Document.query
-    
-    if doc_type:
-        query = query.filter_by(document_type=doc_type)
-    
-    if search:
-        query = query.filter(Document.file_name.ilike(f'%{search}%'))
-    
-    documents = query.order_by(Document.uploaded_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
+    query = Document.query.join(
+        Application, Document.application_id == Application.id
+    ).join(
+        User, Application.applicant_id == User.id
     )
     
+    if doc_type:
+        query = query.filter(Document.document_type == doc_type)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                Document.file_name.ilike(f'%{search}%'),
+                User.full_name.ilike(f'%{search}%')
+            )
+        )
+    
+    documents = query.order_by(User.full_name, Document.uploaded_at.desc()).all()
+    
+    # Group documents by applicant
+    from collections import OrderedDict
+    applicant_folders = OrderedDict()
+    for doc in documents:
+        if doc.application and doc.application.applicant:
+            applicant = doc.application.applicant
+            key = applicant.id
+            if key not in applicant_folders:
+                applicant_folders[key] = {
+                    'applicant': applicant,
+                    'documents': [],
+                    'total_size': 0
+                }
+            applicant_folders[key]['documents'].append(doc)
+            applicant_folders[key]['total_size'] += (doc.file_size or 0)
+    
     return render_template('document_library.html', 
-                           documents=documents,
+                           applicant_folders=applicant_folders,
+                           total_documents=len(documents),
                            doc_type=doc_type,
                            search=search)
 
@@ -1782,14 +1796,20 @@ def download_document(doc_id):
     """Download a document by ID."""
     document = Document.query.get_or_404(doc_id)
     
-    # Determine subfolder
-    if document.application_id:
+    # Determine subfolder - try new per-applicant path first, then fall back
+    actual_filename = document.local_path if document.local_path else document.file_name
+    if document.application_id and document.application:
+        subfolder = f'applicants/{document.application.applicant_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        if not os.path.exists(os.path.join(upload_path, actual_filename)):
+            subfolder = f'applications/{document.application_id}'
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+    elif document.application_id:
         subfolder = f'applications/{document.application_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
     else:
         subfolder = 'documents'
-    
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    actual_filename = document.local_path if document.local_path else document.file_name
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
     
     return send_from_directory(upload_path, actual_filename, as_attachment=True, 
                                download_name=document.file_name)
@@ -1802,14 +1822,20 @@ def preview_document(doc_id):
     """Preview a document (inline view)."""
     document = Document.query.get_or_404(doc_id)
     
-    # Determine subfolder
-    if document.application_id:
+    # Determine subfolder - try new per-applicant path first, then fall back
+    actual_filename = document.local_path if document.local_path else document.file_name
+    if document.application_id and document.application:
+        subfolder = f'applicants/{document.application.applicant_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        if not os.path.exists(os.path.join(upload_path, actual_filename)):
+            subfolder = f'applications/{document.application_id}'
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+    elif document.application_id:
         subfolder = f'applications/{document.application_id}'
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
     else:
         subfolder = 'documents'
-    
-    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    actual_filename = document.local_path if document.local_path else document.file_name
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
     
     return send_from_directory(upload_path, actual_filename, as_attachment=False)
 
@@ -1830,10 +1856,13 @@ def download_all_documents(application_id):
     
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for doc in application.documents:
-            subfolder = f'applications/{application.id}'
-            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
             actual_filename = doc.local_path if doc.local_path else doc.file_name
-            file_path = os.path.join(upload_path, actual_filename)
+            # Try new per-applicant path first, then fall back
+            subfolder = f'applicants/{application.applicant_id}'
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
+            if not os.path.exists(file_path):
+                subfolder = f'applications/{application.id}'
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
             
             if os.path.exists(file_path):
                 # Use document type as prefix for clarity
@@ -1877,10 +1906,13 @@ def download_job_documents(job_id):
                 folder_prefix = f"{applicant_name}_{app.application_reference}"
                 
                 for doc in app.documents:
-                    subfolder = f'applications/{app.id}'
-                    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
                     actual_filename = doc.local_path if doc.local_path else doc.file_name
-                    file_path = os.path.join(upload_path, actual_filename)
+                    # Try new per-applicant path first, then fall back
+                    subfolder = f'applicants/{app.applicant_id}'
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
+                    if not os.path.exists(file_path):
+                        subfolder = f'applications/{app.id}'
+                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
                     
                     if os.path.exists(file_path):
                         archive_name = f"{folder_prefix}/{doc.document_type}_{doc.file_name}"
@@ -2265,8 +2297,10 @@ def compose_message():
         if parent_message:
             recipient = parent_message.sender
     
-    # Get applicants for recipient dropdown
-    applicants = User.query.filter_by(role='applicant').order_by(User.last_name, User.first_name).all()
+    # Get all users for recipient dropdown (grouped by role)
+    all_users = User.query.filter(User.id != current_user.id).order_by(User.last_name, User.first_name).all()
+    applicants = [u for u in all_users if u.role == 'applicant']
+    staff_users = [u for u in all_users if u.role in ('hr_officer', 'manager', 'admin', 'staff')]
     
     # Get message templates
     templates = MessageTemplate.query.filter_by(is_active=True).all()
@@ -2276,6 +2310,7 @@ def compose_message():
                            application=application,
                            parent_message=parent_message,
                            applicants=applicants,
+                           staff_users=staff_users,
                            templates=templates)
 
 
@@ -2565,6 +2600,32 @@ def create_bulk_notification():
                            jobs=jobs,
                            statuses=statuses,
                            templates=templates)
+
+
+# ==================== COMMITTEE MANAGEMENT ROUTES ====================
+
+@hr_bp.route('/committees')
+@login_required
+@hr_required
+def committees_list():
+    """View and manage recruitment committees."""
+    return render_template('committees_list.html')
+
+
+@hr_bp.route('/committees/voting')
+@login_required
+@hr_required
+def committee_voting():
+    """Committee voting and review page."""
+    return render_template('committee_voting.html')
+
+
+@hr_bp.route('/committees/decisions')
+@login_required
+@hr_required
+def committee_decisions():
+    """View committee decisions."""
+    return render_template('committee_decisions.html')
 
 
 # ==================== WORKFLOW AUTOMATION ROUTES ====================

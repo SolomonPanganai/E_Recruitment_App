@@ -2,7 +2,25 @@
 
 {% block title %}Recruitment Summary Report{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/print-reports.css') }}" media="print">
+{% endblock %}
+
 {% block content %}
+<!-- Print Header -->
+<div class="print-header">
+    {% if settings and settings.logo %}
+    <img src="{{ url_for('static', filename='images/' ~ settings.logo) }}" alt="Logo" class="print-header-logo">
+    {% endif %}
+    <div class="print-header-text">
+        <h1>{{ settings.system_name if settings and settings.system_name else 'E-Recruitment Portal' }}</h1>
+        <p>Recruitment Summary Report</p>
+    </div>
+    <div class="print-date">
+        <strong>Generated:</strong> {{ now.strftime('%d %B %Y') if now else '' }}
+    </div>
+</div>
+
 <div class="mb-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">

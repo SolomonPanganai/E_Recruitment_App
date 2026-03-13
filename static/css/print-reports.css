@@ -1,0 +1,274 @@
+/* Professional Report Print Styles */
+@media print {
+    /* Reset page */
+    @page {
+        size: A4;
+        margin: 15mm 12mm 20mm 12mm;
+    }
+
+    /* Hide non-printable elements */
+    .navbar, .breadcrumb, .btn, .btn-group, .dropdown,
+    .form-select, .form-control, footer, .modal,
+    #themeModal, .nav-tabs, .tab-content .nav,
+    form, .alert-info, .no-print {
+        display: none !important;
+    }
+
+    /* Base styles */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #222 !important;
+        background: #fff !important;
+        font-size: 11pt;
+        line-height: 1.4;
+    }
+
+    /* Print header */
+    .print-header {
+        display: flex !important;
+        align-items: center;
+        border-bottom: 3px solid #0d6efd;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+
+    .print-header-logo {
+        width: 60px;
+        height: 60px;
+        margin-right: 15px;
+    }
+
+    .print-header-text h1 {
+        font-size: 18pt;
+        font-weight: 700;
+        color: #0d6efd !important;
+        margin: 0;
+    }
+
+    .print-header-text p {
+        font-size: 10pt;
+        color: #555 !important;
+        margin: 0;
+    }
+
+    .print-date {
+        margin-left: auto;
+        text-align: right;
+        font-size: 9pt;
+        color: #666 !important;
+    }
+
+    /* Container */
+    .container, .container-fluid {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Cards */
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        margin-bottom: 12px !important;
+        page-break-inside: avoid;
+    }
+
+    .card-header {
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #dee2e6 !important;
+        padding: 8px 12px !important;
+    }
+
+    .card-header h5, .card-header h6 {
+        font-size: 12pt !important;
+        color: #222 !important;
+        margin: 0 !important;
+    }
+
+    .card-body {
+        padding: 10px 12px !important;
+    }
+
+    /* Stat cards */
+    .card.bg-primary, .card.bg-info, .card.bg-secondary,
+    .card.bg-success, .card.bg-warning, .card.bg-dark {
+        border: 2px solid currentColor !important;
+        color: #222 !important;
+    }
+
+    .card.bg-primary { border-color: #0d6efd !important; }
+    .card.bg-info { border-color: #0dcaf0 !important; }
+    .card.bg-secondary { border-color: #6c757d !important; }
+    .card.bg-success { border-color: #198754 !important; }
+    .card.bg-warning { border-color: #ffc107 !important; }
+    .card.bg-dark { border-color: #212529 !important; }
+
+    .card.bg-primary, .card.bg-info, .card.bg-secondary,
+    .card.bg-success, .card.bg-warning, .card.bg-dark {
+        background: #fff !important;
+    }
+
+    .card.bg-primary .card-body,
+    .card.bg-info .card-body,
+    .card.bg-secondary .card-body,
+    .card.bg-success .card-body,
+    .card.bg-dark .card-body {
+        color: #222 !important;
+    }
+
+    .card.bg-warning .card-body {
+        color: #222 !important;
+    }
+
+    .card .text-white {
+        color: #222 !important;
+    }
+
+    .card h2 {
+        font-size: 20pt !important;
+        font-weight: 700 !important;
+    }
+
+    /* Tables */
+    .table {
+        font-size: 10pt !important;
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+
+    .table th {
+        background-color: #f0f0f0 !important;
+        font-weight: 600 !important;
+        border-bottom: 2px solid #333 !important;
+        padding: 6px 8px !important;
+    }
+
+    .table td {
+        border-bottom: 1px solid #ddd !important;
+        padding: 5px 8px !important;
+    }
+
+    .table-hover tbody tr:hover {
+        background: none !important;
+    }
+
+    /* Progress bars */
+    .progress {
+        border: 1px solid #ddd !important;
+        background: #f5f5f5 !important;
+        height: 18px !important;
+        border-radius: 3px !important;
+    }
+
+    .progress-bar {
+        background: #666 !important;
+        color: #fff !important;
+        font-size: 8pt !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .progress-bar.bg-primary { background: #0d6efd !important; }
+    .progress-bar.bg-success { background: #198754 !important; }
+
+    /* Badges */
+    .badge {
+        border: 1px solid #999 !important;
+        color: #222 !important;
+        background: #e9ecef !important;
+        font-size: 9pt !important;
+        padding: 2px 6px !important;
+    }
+
+    .badge.bg-primary { border-color: #0d6efd !important; }
+    .badge.bg-success { border-color: #198754 !important; }
+    .badge.bg-danger { border-color: #dc3545 !important; }
+    .badge.bg-warning { border-color: #ffc107 !important; }
+    .badge.bg-info { border-color: #0dcaf0 !important; }
+
+    /* Grid for stat cards */
+    .row.mb-4 > [class*="col-md-2"] {
+        width: 16.66% !important;
+        flex: 0 0 16.66% !important;
+    }
+
+    .row > [class*="col-md-3"] {
+        width: 25% !important;
+        flex: 0 0 25% !important;
+    }
+
+    .row > [class*="col-md-4"] {
+        width: 33.33% !important;
+        flex: 0 0 33.33% !important;
+    }
+
+    .row > [class*="col-lg-6"] {
+        width: 50% !important;
+        flex: 0 0 50% !important;
+    }
+
+    .row > [class*="col-lg-7"] {
+        width: 58.33% !important;
+        flex: 0 0 58.33% !important;
+    }
+
+    .row > [class*="col-lg-5"] {
+        width: 41.66% !important;
+        flex: 0 0 41.66% !important;
+    }
+
+    /* Chart bars (funnel visualization) */
+    .funnel-bar {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    /* Page headings */
+    h1, .h1 { font-size: 16pt !important; }
+    h2, .h2 { font-size: 14pt !important; }
+    h3, .h3, h5, .h5 { font-size: 12pt !important; }
+    h6, .h6 { font-size: 11pt !important; }
+
+    p.text-muted {
+        color: #666 !important;
+    }
+
+    /* Links */
+    a {
+        color: #222 !important;
+        text-decoration: none !important;
+    }
+
+    /* Footer */
+    .print-footer {
+        display: block !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 8pt;
+        color: #999;
+        border-top: 1px solid #ddd;
+        padding-top: 5px;
+    }
+
+    /* Display override for print-only elements */
+    .d-print-block {
+        display: block !important;
+    }
+
+    .d-print-none {
+        display: none !important;
+    }
+}
+
+/* Hide print elements on screen */
+@media screen {
+    .print-header,
+    .print-footer {
+        display: none;
+    }
+}

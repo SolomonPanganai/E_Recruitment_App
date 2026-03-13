@@ -238,8 +238,106 @@ function viewCommitteeDetails(committeeId) {
 }
 
 function showAddMemberForm(committeeId) {
-    // TODO: Implement add member form
-    alert('Add member functionality - to be implemented');
+    // Fetch users to add
+    fetch('/api/committees/' + committeeId)
+        .then(response => response.json())
+        .then(committee => {
+            const existingIds = committee.members.map(m => m.user_id);
+            
+            // Build a simple modal form
+            const modalHtml = `
+                <div class="modal fade" id="addMemberModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add Member to ${committee.name}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Select User</label>
+                                    <select id="newMemberUserId" class="form-select">
+                                        <option value="">Loading...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    <select id="newMemberRole" class="form-select">
+                                        <option value="member">Member</option>
+                                        <option value="chair">Chair</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="addMemberToCommittee(${committeeId})">Add Member</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove old modal if present
+            const oldModal = document.getElementById('addMemberModal');
+            if (oldModal) oldModal.remove();
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Load HR staff into dropdown
+            fetch('/api/committees/' + committeeId)
+                .then(r => r.json())
+                .then(c => {
+                    const existIds = c.members.map(m => m.user_id);
+                    // We need a user list - get from a simple endpoint
+                    const select = document.getElementById('newMemberUserId');
+                    select.innerHTML = '<option value="">-- Select User --</option>';
+                    
+                    // Fetch users from the page data or a simple list
+                    fetch('/api/committee/available-users')
+                        .then(r => r.json())
+                        .then(data => {
+                            data.users.forEach(u => {
+                                if (!existIds.includes(u.id)) {
+                                    const opt = document.createElement('option');
+                                    opt.value = u.id;
+                                    opt.textContent = u.full_name + ' (' + u.role + ')';
+                                    select.appendChild(opt);
+                                }
+                            });
+                        });
+                });
+            
+            new bootstrap.Modal(document.getElementById('addMemberModal')).show();
+        });
+}
+
+function addMemberToCommittee(committeeId) {
+    const userId = document.getElementById('newMemberUserId').value;
+    const role = document.getElementById('newMemberRole').value;
+    
+    if (!userId) {
+        alert('Please select a user');
+        return;
+    }
+    
+    fetch('/api/committees/' + committeeId + '/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: parseInt(userId), role: role })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to add member');
+        return response.json();
+    })
+    .then(result => {
+        alert('Member added successfully!');
+        bootstrap.Modal.getInstance(document.getElementById('addMemberModal')).hide();
+        // Refresh the committee details
+        viewCommitteeDetails(committeeId);
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
 }
 
 document.getElementById('createCommitteeForm').addEventListener('submit', function(e) {

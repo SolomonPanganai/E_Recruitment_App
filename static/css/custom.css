@@ -7,7 +7,7 @@
     box-shadow: var(--shadow-lg);
 }
 .table-hover tbody tr:hover {
-    background-color: #f1f5f9;
+    background-color: var(--t-table-hover, #f1f5f9);
 }
 .btn-primary, .btn-outline-primary:hover {
     box-shadow: 0 2px 8px rgba(37,99,235,0.15);
@@ -45,8 +45,6 @@ body {
     display: flex;
     flex-direction: column;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background-color: #f8fafc;
-    color: #1e293b;
 }
 
 main {
@@ -56,7 +54,6 @@ main {
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    color: #0f172a;
 }
 
 .lead {
@@ -66,7 +63,6 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Navbar - Modern Glass Effect */
 .navbar {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(124, 58, 237, 0.95) 100%) !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
@@ -204,7 +200,6 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-md);
     transition: var(--transition);
-    background: #fff;
 }
 
 .card:hover {
@@ -212,8 +207,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--t-card-border, #e2e8f0);
     font-weight: 600;
     padding: 1rem 1.25rem;
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
@@ -224,8 +218,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card-footer {
-    background-color: #f8fafc;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--t-card-border, #e2e8f0);
     padding: 1rem 1.25rem;
     border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
@@ -306,7 +299,6 @@ h1, h2, h3, h4, h5, h6 {
 .job-card .card-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #0f172a;
     margin-bottom: 0.75rem;
 }
 
@@ -406,8 +398,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .table th {
     font-weight: 600;
-    background-color: #f1f5f9;
-    color: #475569;
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.5px;
@@ -424,25 +414,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .table tbody tr:hover {
-    background-color: #f8fafc;
+    background-color: var(--t-table-hover, #f8fafc);
 }
 
 /* Forms */
 .form-control, .form-select {
     border-radius: 8px;
-    border: 2px solid #e2e8f0;
     padding: 0.65rem 1rem;
     transition: var(--transition);
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    border-color: var(--t-primary, #2563eb);
+    box-shadow: 0 0 0 3px rgba(var(--t-primary-rgb, 37, 99, 235), 0.15);
 }
 
 .form-label {
     font-weight: 600;
-    color: #374151;
     margin-bottom: 0.5rem;
 }
 
@@ -544,8 +532,6 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Footer - Modern Design */
 footer {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    color: #cbd5e1;
     padding: 1.5rem 0 1rem;
     margin-top: auto;
     position: relative;
@@ -560,7 +546,6 @@ footer::before {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--primary-color), #7c3aed, var(--primary-color));
     background-size: 200% 100%;
     animation: gradientMove 3s ease infinite;
 }
@@ -571,20 +556,18 @@ footer::before {
 }
 
 footer h5, footer h6 {
-    color: #fff;
     font-weight: 600;
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
 }
 
 footer a {
-    color: #94a3b8;
     text-decoration: none;
     transition: var(--transition);
 }
 
 footer a:hover {
-    color: #fff;
+    color: var(--t-footer-heading, #fff);
 }
 
 footer ul li {
@@ -592,11 +575,10 @@ footer ul li {
 }
 
 footer .bi {
-    color: var(--primary-light);
+    color: var(--t-primary, #3b82f6);
 }
 
 footer p {
-    color: #64748b;
     margin-bottom: 0.25rem;
 }
 

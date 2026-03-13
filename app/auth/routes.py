@@ -58,7 +58,7 @@ def login():
         
         # Redirect based on role
         next_page = request.args.get('next')
-        if next_page:
+        if next_page and next_page.startswith('/'):
             return redirect(next_page)
         
         if user.role in ('hr_officer', 'manager', 'admin'):

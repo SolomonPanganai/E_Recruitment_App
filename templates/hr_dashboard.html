@@ -1,3 +1,5 @@
+git initgit initgit init
+
 {% extends "base.html" %}
 
 {% block title %}{% if current_user.role == 'manager' %}Manager{% elif current_user.role == 'admin' %}Admin{% else %}HR{% endif %} Dashboard - {% if settings %}{{ settings.system_name }}{% else %}E-Recruitment Portal{% endif %}{% endblock %}
@@ -435,6 +437,16 @@
                     <div class="col-md-3 mb-2">
                         <a href="{{ url_for('hr.workflows') }}" class="btn btn-outline-dark w-100">
                             <i class="bi bi-diagram-3"></i> Workflows
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('hr.committees_list') }}" class="btn btn-outline-purple w-100">
+                            <i class="bi bi-people-fill"></i> Committees
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('hr.committee_voting') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-hand-thumbs-up"></i> Committee Voting
                         </a>
                     </div>
                     {% if current_user.is_admin() %}

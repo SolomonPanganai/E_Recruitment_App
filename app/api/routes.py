@@ -2,9 +2,18 @@
 from datetime import datetime
 from flask import jsonify, request
 from flask_login import login_required, current_user
+from sqlalchemy.exc import OperationalError, DatabaseError
 from app import db
 from app.api import api_bp
-from app.models import JobPosting, Application, User, AuditLog
+from app.models import JobPosting, Application, User, AuditLog, Document
+
+
+@api_bp.errorhandler(OperationalError)
+@api_bp.errorhandler(DatabaseError)
+def handle_db_error(error):
+    """Return JSON error when database is unavailable."""
+    db.session.rollback()
+    return jsonify({'error': 'Database service is temporarily unavailable. Please try again later.'}), 503
 
 
 def hr_required_api(f):
@@ -296,6 +305,26 @@ def health_check():
     })
 
 
+@api_bp.route('/committee/available-users', methods=['GET'])
+@login_required
+@hr_required_api
+def get_available_users():
+    """Get list of HR/staff users who can be added to committees."""
+    users = User.query.filter(
+        User.role.in_(['hr_officer', 'manager', 'admin']),
+        User.is_active == True
+    ).order_by(User.last_name, User.first_name).all()
+
+    return jsonify({
+        'users': [{
+            'id': u.id,
+            'full_name': u.full_name,
+            'role': u.role.replace('_', ' ').title(),
+            'email': u.email
+        } for u in users]
+    })
+
+
 # ============== Committee Endpoints ==============
 
 @api_bp.route('/committees', methods=['GET'])
@@ -525,3 +554,214 @@ def cast_committee_vote(committee_id, decision_id):
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': f'Error recording vote: {str(e)}'}), 500
+
+
+@api_bp.route('/committee/pending-reviews', methods=['GET'])
+@login_required
+def get_pending_reviews():
+    """Get pending reviews for the current user."""
+    from app.models import CommitteeMember, CommitteeDecision, Committee
+
+    # Find committees where current user is a member
+    memberships = CommitteeMember.query.filter_by(
+        user_id=current_user.id, is_active=True
+    ).all()
+
+    reviews = []
+    for membership in memberships:
+        # Get pending decisions for this committee where user has not voted
+        decisions = CommitteeDecision.query.filter_by(
+            committee_id=membership.committee_id,
+            decision='pending'
+        ).all()
+
+        for decision in decisions:
+            # Check if user already voted
+            individual = decision.individual_votes or {}
+            if str(current_user.id) in individual:
+                continue
+
+            app = Application.query.get(decision.application_id)
+            if not app:
+                continue
+
+            reviews.append({
+                'decision_id': decision.id,
+                'application_id': decision.application_id,
+                'member_id': membership.id,
+                'candidate_name': app.applicant.full_name if app.applicant else 'Unknown',
+                'job_title': app.job.title if app.job else 'Unknown',
+                'committee_name': membership.committee.name,
+                'committee_id': membership.committee_id
+            })
+
+    return jsonify({'reviews': reviews})
+
+
+@api_bp.route('/committee/my-votes', methods=['GET'])
+@login_required
+def get_my_votes():
+    """Get votes cast by the current user."""
+    from app.models import CommitteeMemberVote, CommitteeMember, CommitteeDecision
+
+    memberships = CommitteeMember.query.filter_by(
+        user_id=current_user.id
+    ).all()
+    member_ids = [m.id for m in memberships]
+
+    votes_list = []
+    if member_ids:
+        votes = CommitteeMemberVote.query.filter(
+            CommitteeMemberVote.member_id.in_(member_ids)
+        ).order_by(CommitteeMemberVote.voted_at.desc()).all()
+
+        for v in votes:
+            decision = CommitteeDecision.query.get(v.decision_id)
+            if not decision:
+                continue
+            app = Application.query.get(decision.application_id)
+            votes_list.append({
+                'vote': v.vote,
+                'comments': v.comments,
+                'rating': v.rating,
+                'voted_at': v.voted_at.isoformat(),
+                'candidate_name': app.applicant.full_name if app and app.applicant else 'Unknown',
+                'job_title': app.job.title if app and app.job else 'Unknown'
+            })
+
+    return jsonify({'votes': votes_list})
+
+
+@api_bp.route('/committee/decisions', methods=['GET'])
+@login_required
+@hr_required_api
+def list_committee_decisions():
+    """List all committee decisions with optional filters."""
+    from app.models import CommitteeDecision, Committee
+
+    committee_type = request.args.get('type')
+    status = request.args.get('status')
+
+    query = CommitteeDecision.query.join(Committee)
+
+    if committee_type:
+        query = query.filter(Committee.committee_type == committee_type)
+    if status:
+        query = query.filter(CommitteeDecision.decision == status)
+
+    decisions = query.order_by(CommitteeDecision.created_at.desc()).all()
+
+    result = []
+    for d in decisions:
+        app = Application.query.get(d.application_id)
+        result.append({
+            'id': d.id,
+            'committee_id': d.committee_id,
+            'committee_name': d.committee.name,
+            'application_id': d.application_id,
+            'candidate_name': app.applicant.full_name if app and app.applicant else 'Unknown',
+            'job_title': app.job.title if app and app.job else 'Unknown',
+            'decision': d.decision,
+            'votes_yes': d.votes_yes,
+            'votes_no': d.votes_no,
+            'votes_abstain': d.votes_abstain,
+            'total_votes': d.total_votes,
+            'votes_pending': d.votes_pending,
+            'created_at': d.created_at.isoformat(),
+            'finalized_at': d.finalized_at.isoformat() if d.finalized_at else None
+        })
+
+    return jsonify({'decisions': result})
+
+
+@api_bp.route('/committee/decisions/<int:decision_id>', methods=['GET'])
+@login_required
+@hr_required_api
+def get_decision_detail(decision_id):
+    """Get detailed info about a specific committee decision."""
+    from app.models import CommitteeDecision, CommitteeMemberVote
+
+    decision = CommitteeDecision.query.get(decision_id)
+    if not decision:
+        return jsonify({'error': 'Decision not found'}), 404
+
+    app = Application.query.get(decision.application_id)
+
+    member_votes = []
+    for v in decision.individual_votes_details.all():
+        member_votes.append({
+            'member_name': v.member.user.full_name if v.member and v.member.user else 'Unknown',
+            'vote': v.vote,
+            'rating': v.rating,
+            'comments': v.comments,
+            'voted_at': v.voted_at.isoformat()
+        })
+
+    return jsonify({
+        'id': decision.id,
+        'committee_id': decision.committee_id,
+        'committee_name': decision.committee.name,
+        'application_id': decision.application_id,
+        'candidate_name': app.applicant.full_name if app and app.applicant else 'Unknown',
+        'job_title': app.job.title if app and app.job else 'Unknown',
+        'decision': decision.decision,
+        'votes_yes': decision.votes_yes,
+        'votes_no': decision.votes_no,
+        'votes_abstain': decision.votes_abstain,
+        'total_votes': decision.total_votes,
+        'votes_pending': decision.votes_pending,
+        'committee_notes': decision.committee_notes,
+        'finalized_at': decision.finalized_at.isoformat() if decision.finalized_at else None,
+        'member_votes': member_votes
+    })
+
+
+@api_bp.route('/applications/<int:application_id>', methods=['GET'])
+@login_required
+@hr_required_api
+def get_application(application_id):
+    """Get application details for committee review."""
+    application = Application.query.get(application_id)
+    if not application:
+        return jsonify({'error': 'Application not found'}), 404
+
+    return jsonify({
+        'id': application.id,
+        'full_name': application.applicant.full_name if application.applicant else 'Unknown',
+        'email': application.applicant.email if application.applicant else '',
+        'phone': application.applicant.phone if application.applicant else None,
+        'application_date': application.application_date.isoformat() if application.application_date else application.created_at.isoformat(),
+        'status': application.status,
+        'application_reference': application.application_reference,
+        'cover_letter': application.cover_letter,
+        'screening_score': application.screening_score
+    })
+
+
+@api_bp.route('/applications/<int:application_id>/full', methods=['GET'])
+@login_required
+@hr_required_api
+def get_application_full(application_id):
+    """Get full application details including documents."""
+    application = Application.query.get(application_id)
+    if not application:
+        return jsonify({'error': 'Application not found'}), 404
+
+    documents = Document.query.filter_by(application_id=application_id).all()
+    docs_list = []
+    for doc in documents:
+        docs_list.append({
+            'type': doc.document_type,
+            'file_name': doc.file_name,
+            'url': f'/applicant/documents/{doc.id}/download'
+        })
+
+    return jsonify({
+        'id': application.id,
+        'full_name': application.applicant.full_name if application.applicant else 'Unknown',
+        'email': application.applicant.email if application.applicant else '',
+        'cover_letter': application.cover_letter,
+        'screening_score': application.screening_score,
+        'status': application.status,
+        'documents': docs_list
+    })

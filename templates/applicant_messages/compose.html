@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}New Message - E-Recruitment{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('applicant.applicant_messages') }}">Messages</a></li>
+                <li class="breadcrumb-item active">New Message</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-pencil-square me-2"></i>New Message</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label class="form-label">To <span class="text-danger">*</span></label>
+                            <select name="recipient_id" class="form-select" required>
+                                <option value="">-- Select HR Staff --</option>
+                                {% for u in hr_staff %}
+                                <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role|replace('_', ' ')|title }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="subject" class="form-control" required maxlength="200">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Message <span class="text-danger">*</span></label>
+                            <textarea name="body" class="form-control" rows="8" required></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Send Message
+                            </button>
+                            <a href="{{ url_for('applicant.applicant_messages') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 """Main application routes."""
 from flask import Blueprint, render_template, request, current_app
+from app import db
 from app.models import JobPosting
 from app.forms import JobSearchForm
 
@@ -87,7 +88,6 @@ def job_detail(job_id):
     
     # Increment view count
     job.views_count += 1
-    from app import db
     db.session.commit()
     
     return render_template('job_detail.html', job=job)
@@ -126,6 +126,5 @@ def not_found_error(error):
 @main_bp.app_errorhandler(500)
 def internal_error(error):
     """500 error handler."""
-    from app import db
     db.session.rollback()
     return render_template('errors/500.html'), 500

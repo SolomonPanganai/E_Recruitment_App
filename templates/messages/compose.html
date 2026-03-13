@@ -21,6 +21,7 @@
             <div class="card">
                 <div class="card-body">
                     <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <!-- Template Selection -->
                         {% if templates %}
                         <div class="mb-3">
@@ -43,9 +44,20 @@
                             {% else %}
                             <select name="recipient_id" class="form-select" required>
                                 <option value="">-- Select Recipient --</option>
-                                {% for a in applicants %}
-                                <option value="{{ a.id }}">{{ a.full_name }} ({{ a.email }})</option>
-                                {% endfor %}
+                                {% if staff_users %}
+                                <optgroup label="Staff / HR / Managers">
+                                    {% for u in staff_users %}
+                                    <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role|replace('_', ' ')|title }}) - {{ u.email }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endif %}
+                                {% if applicants %}
+                                <optgroup label="Applicants">
+                                    {% for a in applicants %}
+                                    <option value="{{ a.id }}">{{ a.full_name }} ({{ a.email }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endif %}
                             </select>
                             {% endif %}
                         </div>

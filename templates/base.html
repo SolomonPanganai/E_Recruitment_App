@@ -18,7 +18,7 @@
 </head>
 <body{% if settings and settings.theme %} class="theme-{{ settings.theme }}"{% endif %}>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg sticky-top{% if settings and settings.theme %} theme-{{ settings.theme }}{% endif %}">
+    <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
               <!-- LOGO PLACEMENT AREA: Navbar/Header (Top Left) -->
                 <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}">
@@ -31,14 +31,13 @@
                             <img src="{{ url_for('static', filename='images/image.png') }}" alt="Logo" class="me-2" style="height:80px; width:auto; vertical-align:middle; padding:2px;">
                         {% endif %}
                     <span class="fw-bold ms-1" style="font-size:1.5rem; vertical-align:middle;">
-                        {% if current_user.is_authenticated and current_user.role == 'admin' and settings %}
+                        {% if settings and settings.system_name %}
                             {{ settings.system_name }}
                         {% else %}
                             E-Recruitment
                         {% endif %}
                     </span>
                 </a>
-            </a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -225,23 +224,16 @@
 
             <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // Instant preview for theme selection (navbar and submit buttons only, no background change)
+                // Full live preview: update body class so CSS variables cascade everywhere
                 const themeForm = document.getElementById('themeForm');
                 if (themeForm) {
                     themeForm.addEventListener('change', function(e) {
                         if (e.target.name === 'theme') {
                             const selectedTheme = e.target.value;
-                            // Update navbar theme class
-                            const navbar = document.querySelector('.navbar');
-                            if (navbar) {
-                                navbar.className = navbar.className.replace(/theme-[a-z]+/g, '').trim();
-                                navbar.classList.add('theme-' + selectedTheme);
-                            }
-                            // Update all btn-primary theme class
-                            document.querySelectorAll('.btn-primary').forEach(function(btn) {
-                                btn.className = btn.className.replace(/theme-[a-z]+/g, '').trim();
-                                btn.classList.add('theme-' + selectedTheme);
-                            });
+                            // Remove any existing theme class from body
+                            document.body.className = document.body.className.replace(/theme-[a-z]+/g, '').trim();
+                            // Apply new theme class — CSS variables do the rest
+                            document.body.classList.add('theme-' + selectedTheme);
                         }
                     });
                 }
@@ -249,7 +241,7 @@
             </script>
     
     <!-- Footer -->
-    <footer class="mt-auto bg-dark text-light py-5">
+    <footer class="mt-auto py-5">
         <div class="container">
             <div class="row g-4 mb-4">
                 <!-- Column 1: Brand & Social -->

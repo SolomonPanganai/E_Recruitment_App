@@ -1,12 +1,13 @@
 """Flask application factory and extension initialization."""
 import os
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy.exc import OperationalError, DatabaseError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,7 +55,7 @@ def create_app(config_name=None):
     from app.hr import hr_bp
     from app.api import api_bp
     
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(applicant_bp, url_prefix='/applicant')
     app.register_blueprint(hr_bp, url_prefix='/hr')
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -83,8 +84,18 @@ def create_app(config_name=None):
     from app.models import SystemSettings
     @app.context_processor
     def inject_settings():
-        settings = SystemSettings.query.first()
+        try:
+            settings = SystemSettings.query.first()
+        except (OperationalError, DatabaseError):
+            settings = None
         return dict(settings=settings)
+
+    # Handle database connection errors with a friendly page
+    @app.errorhandler(OperationalError)
+    def handle_db_error(error):
+        db.session.rollback()
+        app.logger.error(f'Database connection error: {error}')
+        return render_template('errors/db_error.html'), 503
 
     return app
 
@@ -93,4 +104,7 @@ def create_app(config_name=None):
 def load_user(user_id):
     """Load user by ID for Flask-Login."""
     from app.models import User
-    return User.query.get(int(user_id))
+    try:
+        return User.query.get(int(user_id))
+    except (OperationalError, DatabaseError):
+        return None

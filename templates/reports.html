@@ -2,8 +2,31 @@
 
 {% block title %}Reports & Analytics - E-Recruitment Portal{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/print-reports.css') }}" media="print">
+<style>
+    /* Hide print-only elements on screen */
+    .print-header, .print-footer { display: none; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 print-analytics">
+<!-- Print Header (only visible when printing) -->
+<div class="print-header">
+    {% if settings and settings.logo %}
+    <img src="{{ url_for('static', filename='images/' ~ settings.logo) }}" alt="Logo" class="print-header-logo">
+    {% endif %}
+    <div class="print-header-text">
+        <h1>{{ settings.system_name if settings and settings.system_name else 'E-Recruitment Portal' }}</h1>
+        <p>Recruitment Analytics Report</p>
+    </div>
+    <div class="print-date">
+        <strong>Generated:</strong> {{ now.strftime('%d %B %Y') if now else '' }}<br>
+        {% if department_filter %}<strong>Department:</strong> {{ department_filter }}{% endif %}
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2><i class="bi bi-graph-up"></i> Recruitment Analytics</h2>
         <p class="text-muted mb-0">Comprehensive recruitment metrics and insights</p>
@@ -28,19 +51,12 @@
         <button onclick="window.print()" class="btn btn-outline-secondary ms-2" title="Print analytics report">
             <i class="bi bi-printer"></i> Print Report
         </button>
-    <style>
-    @media print {
-        body * { visibility: hidden; }
-        .print-analytics, .print-analytics * { visibility: visible !important; }
-        .card, .card * { visibility: visible; }
-        .card { position: relative; left: 0; top: 0; width: 100vw; box-shadow: none; border: none; }
-        .btn, .navbar, .breadcrumb, .form-select, .ms-2, .gap-2, .d-flex, .card-header .btn { display: none !important; }
-        .card-header { border-bottom: 1px solid #eee; }
-        h2, h5, h6 { color: #222 !important; }
-        .badge { color: #fff !important; }
-    }
-    </style>
     </div>
+</div>
+
+<!-- Print Footer (only visible when printing) -->
+<div class="print-footer">
+    {{ settings.system_name if settings and settings.system_name else 'E-Recruitment Portal' }} &mdash; Confidential Report
 </div>
 
 <!-- Date Range Filter -->

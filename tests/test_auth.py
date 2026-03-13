@@ -21,11 +21,12 @@ class TestAuth:
     def test_register_new_user(self, client, app):
         """Test user registration."""
         response = client.post('/auth/register', data={
+            'username': 'newuser',
             'email': 'newuser@example.com',
             'first_name': 'New',
             'last_name': 'User',
             'password': 'securepassword123',
-            'confirm_password': 'securepassword123'
+            'password2': 'securepassword123'
         }, follow_redirects=True)
         
         assert response.status_code == 200
@@ -84,11 +85,12 @@ class TestPasswordValidation:
     def test_password_too_short(self, client):
         """Test that short passwords are rejected."""
         response = client.post('/auth/register', data={
+            'username': 'testshort',
             'email': 'test@example.com',
             'first_name': 'Test',
             'last_name': 'User',
             'password': 'short',
-            'confirm_password': 'short'
+            'password2': 'short'
         }, follow_redirects=True)
         
         # Should show validation error
@@ -97,11 +99,12 @@ class TestPasswordValidation:
     def test_password_mismatch(self, client):
         """Test that mismatched passwords are rejected."""
         response = client.post('/auth/register', data={
+            'username': 'testmismatch',
             'email': 'test@example.com',
             'first_name': 'Test',
             'last_name': 'User',
             'password': 'password123',
-            'confirm_password': 'different123'
+            'password2': 'different123'
         }, follow_redirects=True)
         
         assert response.status_code == 200

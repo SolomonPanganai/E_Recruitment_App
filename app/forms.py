@@ -18,6 +18,13 @@ class SystemSettingsForm(FlaskForm):
         ('blue', 'Blue'),
         ('green', 'Green'),
         ('red', 'Red'),
+        ('purple', 'Purple'),
+        ('orange', 'Orange'),
+        ('yellow', 'Yellow'),
+        ('teal', 'Teal'),
+        ('indigo', 'Indigo'),
+        ('pink', 'Pink'),
+        ('gray', 'Gray'),
     ], validators=[DataRequired()])
     logo = FileField('Logo', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')])
     submit = SubmitField('Update Settings')

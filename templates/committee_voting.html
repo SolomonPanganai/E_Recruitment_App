@@ -151,7 +151,7 @@ function loadPendingReviews() {
                         <div class="col-md-2 text-end">
                             <button class="btn btn-sm btn-primary" 
                                     onclick="startVotingProcess(${review.decision_id}, ${review.application_id}, 
-                                             ${review.member_id})">
+                                             ${review.member_id}, ${review.committee_id})">
                                 Review & Vote
                             </button>
                         </div>
@@ -205,7 +205,7 @@ function loadCompletedVotes() {
         .catch(error => console.error('Error loading completed votes:', error));
 }
 
-function startVotingProcess(decisionId, applicationId, memberId) {
+function startVotingProcess(decisionId, applicationId, memberId, committeeId) {
     // Fetch candidate and application details
     fetch(`/api/applications/${applicationId}`)
         .then(response => response.json())
@@ -214,6 +214,7 @@ function startVotingProcess(decisionId, applicationId, memberId) {
                 decision_id: decisionId,
                 application_id: applicationId,
                 member_id: memberId,
+                committee_id: committeeId,
                 candidate_name: applicant.full_name
             };
             
@@ -338,7 +339,7 @@ function submitVote() {
         return;
     }
     
-    fetch(`/api/committees/${currentReviewData.decision_id}/vote`, {
+    fetch(`/api/committees/${currentReviewData.committee_id}/decisions/${currentReviewData.decision_id}/vote`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

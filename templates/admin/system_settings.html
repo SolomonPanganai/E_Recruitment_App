@@ -4,11 +4,12 @@
     <h2>System Settings</h2>
     <form method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+        <!-- Preserve current theme value (theme is changed via the modal in base.html) -->
+        <input type="hidden" name="theme" value="{{ settings.theme or 'default' }}">
         <div class="mb-3">
             <label for="system_name" class="form-label">System Name</label>
             {{ form.system_name(class="form-control", id="system_name") }}
         </div>
-        <!-- Theme selection is now handled by the modal in base.html -->
         <div class="mb-3">
             <label for="logo" class="form-label">Logo</label>
             {{ form.logo(class="form-control", id="logo") }}
