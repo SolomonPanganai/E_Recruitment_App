@@ -1,5 +1,3 @@
-git initgit initgit init
-
 {% extends "base.html" %}
 
 {% block title %}{% if current_user.role == 'manager' %}Manager{% elif current_user.role == 'admin' %}Admin{% else %}HR{% endif %} Dashboard - {% if settings %}{{ settings.system_name }}{% else %}E-Recruitment Portal{% endif %}{% endblock %}

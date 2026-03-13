@@ -1760,11 +1760,12 @@ def document_library():
         query = query.filter(
             db.or_(
                 Document.file_name.ilike(f'%{search}%'),
-                User.full_name.ilike(f'%{search}%')
+                User.first_name.ilike(f'%{search}%'),
+                User.last_name.ilike(f'%{search}%')
             )
         )
     
-    documents = query.order_by(User.full_name, Document.uploaded_at.desc()).all()
+    documents = query.order_by(User.first_name, User.last_name, Document.uploaded_at.desc()).all()
     
     # Group documents by applicant
     from collections import OrderedDict
