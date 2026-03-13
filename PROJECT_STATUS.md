@@ -69,6 +69,7 @@ The E-Recruitment Portal application is actively under development with solid pr
   - SharePoint integration for document management
   - Email notifications
   - Workflow automation
+  - ~~OneDrive sync~~ (removed in current version)
 
 - **User Management**
   - Advanced permission controls
