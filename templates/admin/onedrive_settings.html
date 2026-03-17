@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}OneDrive Integration Settings - E-Recruitment Portal{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="bi bi-cloud"></i> OneDrive Integration Settings</h2>
+    <p class="text-muted">Configure integration with Microsoft OneDrive for automatic document syncing.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Configuration</h5>
+            </div>
+            <div class="card-body">
+                {% if onedrive_configured %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle"></i> OneDrive is configured and ready to use.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% else %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> OneDrive is not configured yet. Please add your credentials below.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+                
+                <form method="POST" class="needs-validation">
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" id="onedrive_enabled" name="onedrive_enabled" 
+                               {% if onedrive_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="onedrive_enabled">
+                            Enable OneDrive Integration
+                        </label>
+                        <small class="d-block text-muted mt-1">When enabled, HR users can sync documents to OneDrive</small>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="onedrive_tenant_id" class="form-label">
+                                Tenant ID <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="onedrive_tenant_id" name="onedrive_tenant_id" 
+                                   value="{{ tenant_id }}"
+                                   placeholder="Your Azure Tenant ID"
+                                   aria-describedby="tenantHelp">
+                            <small id="tenantHelp" class="form-text text-muted d-block mt-1">
+                                Find this in Azure Portal → Directory (tenant) ID
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="onedrive_client_id" class="form-label">
+                                Client/Application ID <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="onedrive_client_id" name="onedrive_client_id" 
+                                   value="{{ client_id }}"
+                                   placeholder="Your Application ID"
+                                   aria-describedby="clientHelp">
+                            <small id="clientHelp" class="form-text text-muted d-block mt-1">
+                                Find this in Azure Portal → App registrations
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="onedrive_client_secret" class="form-label">
+                            Client Secret <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="onedrive_client_secret" name="onedrive_client_secret" 
+                               placeholder="Your Client Secret (leave empty to keep current value)"
+                               aria-describedby="secretHelp">
+                        <small id="secretHelp" class="form-text text-muted d-block mt-1">
+                            Generate this in Azure Portal → Certificates & secrets
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="onedrive_folder_id" class="form-label">OneDrive Folder ID (Optional)</label>
+                        <input type="text" class="form-control" id="onedrive_folder_id" name="onedrive_folder_id" 
+                               placeholder="Leave empty to use root directory"
+                               aria-describedby="folderHelp">
+                        <small id="folderHelp" class="form-text text-muted d-block mt-1">
+                            Specific OneDrive folder where documents will be synced. Leave empty to use root.
+                        </small>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Settings
+                        </button>
+                        <a href="{{ url_for('hr.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Getting Started</h5>
+            </div>
+            <div class="card-body">
+                <h6>Setup Instructions:</h6>
+                <ol class="ps-3 mb-0">
+                    <li>Go to <a href="https://portal.azure.com" target="_blank" rel="noopener">Azure Portal</a></li>
+                    <li>Navigate to "App registrations"</li>
+                    <li>Create a new application registration</li>
+                    <li>Copy the Tenant ID and Application ID</li>
+                    <li>Go to "Certificates & secrets"</li>
+                    <li>Create a new client secret</li>
+                    <li>Add API permissions:
+                        <ul>
+                            <li>Microsoft Graph → Files.ReadWrite.All</li>
+                            <li>Microsoft Graph → Drive.ReadWrite.All</li>
+                        </ul>
+                    </li>
+                    <li>Paste credentials above</li>
+                </ol>
+                
+                <hr>
+                
+                <h6 class="mt-4">Features:</h6>
+                <ul class="ps-3 mb-0 small">
+                    <li>Sync all documents to OneDrive</li>
+                    <li>Sync per-applicant folders</li>
+                    <li>Create shared links for documents</li>
+                    <li>Secure cloud backup</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

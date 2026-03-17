@@ -4,8 +4,17 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-folder2-open"></i> Document Library</h2>
-    <span class="badge bg-secondary fs-6">{{ total_documents }} document{{ 's' if total_documents != 1 }}</span>
+    <div>
+        <h2 class="mb-0"><i class="bi bi-folder2-open"></i> Document Library</h2>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary fs-6">{{ total_documents }} document{{ 's' if total_documents != 1 }}</span>
+        {% if config.ONEDRIVE_ENABLED %}
+        <button class="btn btn-outline-info btn-sm" id="syncOneDriveBtn" title="Sync all documents to OneDrive">
+            <i class="bi bi-cloud-arrow-up"></i> Sync to OneDrive
+        </button>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Filters -->
@@ -42,17 +51,27 @@
 <div class="accordion" id="docAccordion">
     {% for applicant_id, folder in applicant_folders.items() %}
     <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center" 
-             style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#folder-{{ applicant_id }}">
-            <div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div style="cursor:pointer; flex-grow: 1;" data-bs-toggle="collapse" data-bs-target="#folder-{{ applicant_id }}">
                 <i class="bi bi-folder-fill text-warning me-2" style="font-size:1.2rem;"></i>
                 <strong>{{ folder.applicant.full_name }}</strong>
                 <span class="text-muted ms-2">{{ folder.applicant.email }}</span>
             </div>
-            <div>
+            <div class="d-flex align-items-center">
                 <span class="badge bg-primary me-2">{{ folder.documents|length }} file{{ 's' if folder.documents|length != 1 }}</span>
-                <span class="badge bg-secondary">{{ (folder.total_size / 1024)|round(1) }} KB</span>
-                <i class="bi bi-chevron-down ms-2"></i>
+                <span class="badge bg-secondary me-3">{{ (folder.total_size / 1024)|round(1) }} KB</span>
+                <a href="{{ url_for('hr.download_applicant_documents', applicant_id=applicant_id) }}" 
+                   class="btn btn-sm btn-outline-success me-2" title="Download as ZIP">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                {% if config.ONEDRIVE_ENABLED %}
+                <button class="btn btn-sm btn-outline-info me-2 syncApplicantBtn" 
+                        data-applicant-id="{{ applicant_id }}" 
+                        title="Sync this applicant's documents to OneDrive">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </button>
+                {% endif %}
+                <i class="bi bi-chevron-down" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#folder-{{ applicant_id }}"></i>
             </div>
         </div>
         <div id="folder-{{ applicant_id }}" class="collapse">
@@ -132,4 +151,87 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+// Sync documents to OneDrive
+document.addEventListener('DOMContentLoaded', function() {
+    const syncOneDriveBtn = document.getElementById('syncOneDriveBtn');
+    const syncApplicantBtns = document.querySelectorAll('.syncApplicantBtn');
+    
+    if (syncOneDriveBtn) {
+        syncOneDriveBtn.addEventListener('click', function() {
+            if (confirm('Sync all documents to OneDrive?')) {
+                const btn = this;
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Syncing...';
+                
+                fetch('{{ url_for("hr.sync_documents_onedrive") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    if (data.success) {
+                        alert(`✓ Synced ${data.synced} documents to OneDrive${data.failed > 0 ? ` (${data.failed} failed)` : ''}`);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert('Error syncing documents: ' + error);
+                });
+            }
+        });
+    }
+    
+    syncApplicantBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const applicantId = this.getAttribute('data-applicant-id');
+            const applicantName = this.closest('.card-header').textContent.match(/([A-Za-z\s]+)</)[1].trim();
+            
+            if (confirm(`Sync ${applicantName}'s documents to OneDrive?`)) {
+                const btn = this;
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+                
+                const url = `/hr/documents/sync-onedrive/applicant/${applicantId}`;
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    if (data.success) {
+                        alert(`✓ Synced ${data.synced} documents to OneDrive${data.failed > 0 ? ` (${data.failed} failed)` : ''}`);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert('Error syncing documents: ' + error);
+                });
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}

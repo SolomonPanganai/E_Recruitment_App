@@ -6,6 +6,12 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, send_file, send_from_directory
 from flask_login import login_required, current_user
+
+try:
+    from app.utils.onedrive import OneDriveClient
+    ONEDRIVE_AVAILABLE = True
+except ImportError:
+    ONEDRIVE_AVAILABLE = False
 from app import db
 from app.hr import hr_bp
 from app.models import (User, JobPosting, Application, Document, Shortlist, 
@@ -1931,6 +1937,207 @@ def download_job_documents(job_id):
         as_attachment=True,
         download_name=zip_filename
     )
+
+
+@hr_bp.route('/applicants/<int:applicant_id>/documents/download-all')
+@login_required
+@hr_required
+def download_applicant_documents(applicant_id):
+    """Download all documents for an applicant as a ZIP file."""
+    applicant = User.query.get_or_404(applicant_id)
+    
+    # Get all documents for this applicant across all applications
+    documents = Document.query.join(
+        Application, Document.application_id == Application.id
+    ).filter(
+        Application.applicant_id == applicant_id
+    ).order_by(Application.id, Document.uploaded_at).all()
+    
+    if not documents:
+        flash('No documents to download.', 'warning')
+        return redirect(url_for('hr.document_library'))
+    
+    # Create a ZIP file in memory
+    memory_file = io.BytesIO()
+    
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for doc in documents:
+            actual_filename = doc.local_path if doc.local_path else doc.file_name
+            # Try new per-applicant path first, then fall back
+            subfolder = f'applicants/{applicant_id}'
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
+            if not os.path.exists(file_path):
+                subfolder = f'applications/{doc.application_id}'
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder, actual_filename)
+            
+            if os.path.exists(file_path):
+                # Include application reference and document type in archive structure
+                app_ref = doc.application.application_reference if doc.application else 'no_app'
+                archive_name = f"{app_ref}/{doc.document_type}_{doc.file_name}"
+                zf.write(file_path, archive_name)
+    
+    memory_file.seek(0)
+    
+    # Generate ZIP filename
+    applicant_name = applicant.full_name.replace(' ', '_')
+    zip_filename = f"{applicant_name}_all_documents.zip"
+    
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_filename
+    )
+
+
+# ============== OneDrive Integration ==============
+
+@hr_bp.route('/documents/sync-onedrive', methods=['POST'])
+@login_required
+@hr_required
+def sync_documents_onedrive():
+    """Sync all documents in library to OneDrive."""
+    if not ONEDRIVE_AVAILABLE:
+        flash('OneDrive integration is not available. Please install msal: pip install msal', 'danger')
+        return jsonify({'success': False, 'message': 'OneDrive not available'}), 503
+    
+    if not current_app.config.get('ONEDRIVE_ENABLED'):
+        flash('OneDrive integration is not enabled.', 'warning')
+        return jsonify({'success': False, 'message': 'OneDrive not enabled'}), 400
+    
+    try:
+        onedrive = OneDriveClient()
+        onedrive.init_app(current_app)
+        
+        if not onedrive.is_configured:
+            flash('OneDrive is not configured. Please add credentials in settings.', 'danger')
+            return jsonify({'success': False, 'message': 'OneDrive not configured'}), 400
+        
+        # Get all documents
+        documents = Document.query.filter_by(is_deleted=False).all() if hasattr(Document, 'is_deleted') else Document.query.all()
+        
+        # Sync to OneDrive
+        result = onedrive.sync_documents(documents, 'Recruitment Documents')
+        
+        message = f'Synced {result["synced"]} documents to OneDrive'
+        if result['failed'] > 0:
+            message += f', {result["failed"]} failed'
+        
+        if result['errors']:
+            message += f'. Errors: {"; ".join(result["errors"][:3])}'
+        
+        flash(message, 'success' if result['synced'] > 0 else 'warning')
+        
+        return jsonify({
+            'success': True,
+            'synced': result['synced'],
+            'failed': result['failed'],
+            'errors': result['errors']
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f'Error syncing to OneDrive: {str(e)}')
+        flash(f'Error syncing to OneDrive: {str(e)}', 'danger')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@hr_bp.route('/documents/sync-onedrive/applicant/<int:applicant_id>', methods=['POST'])
+@login_required
+@hr_required
+def sync_applicant_documents_onedrive(applicant_id):
+    """Sync applicant documents to OneDrive."""
+    if not ONEDRIVE_AVAILABLE:
+        return jsonify({'success': False, 'message': 'OneDrive not available'}), 503
+    
+    if not current_app.config.get('ONEDRIVE_ENABLED'):
+        return jsonify({'success': False, 'message': 'OneDrive not enabled'}), 400
+    
+    try:
+        applicant = User.query.get_or_404(applicant_id)
+        onedrive = OneDriveClient()
+        onedrive.init_app(current_app)
+        
+        if not onedrive.is_configured:
+            return jsonify({'success': False, 'message': 'OneDrive not configured'}), 400
+        
+        # Get documents for this applicant
+        documents = Document.query.join(
+            Application, Document.application_id == Application.id
+        ).filter(Application.applicant_id == applicant_id).all()
+        
+        if not documents:
+            return jsonify({'success': False, 'message': 'No documents found'}), 404
+        
+        # Create applicant folder and sync
+        applicant_folder_id = onedrive.create_folder(f'Recruitment Documents/{applicant.full_name}')
+        
+        result = onedrive.sync_documents(documents[:], f'Recruitment Documents/{applicant.full_name}')
+        
+        return jsonify({
+            'success': True,
+            'synced': result['synced'],
+            'failed': result['failed']
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f'Error syncing applicant documents to OneDrive: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@hr_bp.route('/settings/onedrive', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def onedrive_settings():
+    """Configure OneDrive integration settings."""
+    if not ONEDRIVE_AVAILABLE:
+        flash('OneDrive integration is not available. Please install: pip install msal', 'danger')
+        return redirect(url_for('hr.dashboard'))
+    
+    if request.method == 'POST':
+        onedrive_enabled = request.form.get('onedrive_enabled') == 'on'
+        onedrive_client_id = request.form.get('onedrive_client_id', '').strip()
+        onedrive_client_secret = request.form.get('onedrive_client_secret', '').strip()
+        onedrive_tenant_id = request.form.get('onedrive_tenant_id', '').strip()
+        onedrive_folder_id = request.form.get('onedrive_folder_id', '').strip()
+        
+        # Update environment/settings (in production, use actual settings storage)
+        current_app.config['ONEDRIVE_ENABLED'] = onedrive_enabled
+        if onedrive_client_id:
+            current_app.config['ONEDRIVE_CLIENT_ID'] = onedrive_client_id
+        if onedrive_client_secret:
+            current_app.config['ONEDRIVE_CLIENT_SECRET'] = onedrive_client_secret
+        if onedrive_tenant_id:
+            current_app.config['ONEDRIVE_TENANT_ID'] = onedrive_tenant_id
+        if onedrive_folder_id:
+            current_app.config['ONEDRIVE_FOLDER_ID'] = onedrive_folder_id
+        
+        # Test connection
+        try:
+            onedrive = OneDriveClient()
+            onedrive.init_app(current_app)
+            if onedrive_enabled and onedrive.is_configured:
+                token = onedrive.get_access_token()
+                if token:
+                    flash('OneDrive connection successful!', 'success')
+                    create_audit_log(current_user.id, 'onedrive_settings_updated', 'Configured OneDrive integration')
+                else:
+                    flash('Failed to connect to OneDrive. Please check your credentials.', 'danger')
+            else:
+                flash('OneDrive settings updated.', 'info')
+        except Exception as e:
+            current_app.logger.error(f'OneDrive connection test failed: {str(e)}')
+            flash(f'OneDrive connection test failed: {str(e)}', 'warning')
+        
+        return redirect(url_for('hr.onedrive_settings'))
+    
+    onedrive = OneDriveClient()
+    onedrive.init_app(current_app)
+    
+    return render_template('admin/onedrive_settings.html',
+                          onedrive_enabled=current_app.config.get('ONEDRIVE_ENABLED', False),
+                          onedrive_configured=onedrive.is_configured,
+                          client_id=current_app.config.get('ONEDRIVE_CLIENT_ID', ''),
+                          tenant_id=current_app.config.get('ONEDRIVE_TENANT_ID', ''))
 
 
 # ============== Assessment Management ==============
